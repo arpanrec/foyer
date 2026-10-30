@@ -133,11 +133,18 @@ rules:
           - list
     - apiGroups:
           - traefik.io
+          - traefik.containo.us
       resources:
           - ingressroutes
       verbs:
           - get
           - list
+    - apiGroups:
+          - apiextensions.k8s.io
+      resources:
+          - customresourcedefinitions
+      verbs:
+          - get
     - apiGroups:
           - gateway.networking.k8s.io
       resources:
@@ -171,10 +178,13 @@ subjects:
       namespace: default
 ```
 
-The `traefik.io` and `gateway.networking.k8s.io` rules are only needed when `traefik: true` or `gateway: true` are
-set in `kubernetes.yaml`; the `metrics.k8s.io` rule is only needed when a Metrics Service is installed and the
-[Kubernetes info widget](../widgets/info/kubernetes.md) or per-service CPU/memory stats are used. See
-[Kubernetes Configuration](../configs/kubernetes.md) for the available modes and discovery options.
+The `traefik.io`, `traefik.containo.us`, `apiextensions.k8s.io` and `gateway.networking.k8s.io` rules are only
+needed when `traefik: true` or `gateway: true` are set in `kubernetes.yaml`. Foyer checks for both Traefik CRD API
+groups (`traefik.containo.us` is the group used before Traefik v3) and needs permission to read
+`CustomResourceDefinitions` to tell which one is installed. The `metrics.k8s.io` rule is only needed when a Metrics
+Service is installed and the [Kubernetes info widget](../widgets/info/kubernetes.md) or per-service CPU/memory
+stats are used. See [Kubernetes Configuration](../configs/kubernetes.md) for the available modes and discovery
+options.
 
 #### Service
 

@@ -20,11 +20,12 @@ export default function Component({ service }: WidgetProps) {
 
 ## `useWidgetAPI`
 
-`useWidgetAPI<T>` takes three possible arguments:
+`useWidgetAPI<T>` takes four possible arguments:
 
 - `widget`: The widget configuration from the `service` prop.
 - `endpoint`: The name of the endpoint to fetch data from.
 - `params`: An optional object containing query parameters to pass to the API.
+- `swrConfig`: An optional [SWR configuration](https://swr.vercel.app/docs/api#options) object, for example to set `refreshInterval`.
 
 The type argument `T` is the shape of the response body, declared in the widget's `types.ts`. The hook returns `{ data, error, mutate }`. `data` is `T` once the request succeeds and `undefined` while it loads. When the proxy answers with an `{ error }` body, for example after an upstream HTTP error, that error is returned as `error`.
 
@@ -64,3 +65,13 @@ export default function Component({ service }: WidgetProps) {
 ```
 
 The `params` must be [whitelisted in the widget metadata object](metadata.md#params). This is done to prevent arbitrary query parameters from being passed to the API.
+
+### Refreshing
+
+By default SWR uses its own refresh behavior. To poll an endpoint on an interval, set `refreshInterval` (in milliseconds) either as a key on `params` or in the fourth `swrConfig` argument:
+
+```tsx
+const { data, error } = useWidgetAPI<StatsResponse>(widget, "stats", { refreshInterval: 60000 });
+// or, when there are no other params:
+const { data, error } = useWidgetAPI<StatsResponse>(widget, "stats", undefined, { refreshInterval: 60000 });
+```

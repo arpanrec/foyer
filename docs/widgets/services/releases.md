@@ -89,6 +89,6 @@ Set `includePrereleases: true` to show the newest GitHub release even when it is
 
 ## Notes
 
-Releases are fetched by foyer, not your browser. Each release is cached for 2 hours. If some repositories fail to load, the widget shows the rest along with a count of the failures, and the reason is written to the foyer logs.
+Releases are fetched by foyer, not your browser. Each release is cached for 2 hours. If some repositories fail to load, the widget shows the rest along with a count of the failures; hover over the count to see which repositories failed and why, and the same reasons are written to the foyer logs.
 
 GitHub releases with more than 3 thumbs-down reactions show the count next to a ⚠ sign.

@@ -1,4 +1,4 @@
-import { copyFileSync, existsSync, mkdirSync, readFileSync } from "fs";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, statSync } from "fs";
 import { join } from "path";
 
 import cache from "memory-cache";
@@ -14,6 +14,7 @@ const cacheKey = "foyerEnvironmentVariables";
 const envPrefix = "FOYER_";
 const varType = "VAR_";
 const fileType = "FILE_";
+const unresolvedPlaceholder = new RegExp(`\\{\\{${envPrefix}(?:${varType}|${fileType})[A-Za-z0-9_]+\\}\\}`, "g");
 
 export const CONF_DIR = getEnv("CONFIG_DIR") || join(/* turbopackIgnore: true */ process.cwd(), "config");
 
@@ -47,10 +48,12 @@ export default function checkAndCopyConfig(config: string) {
     }
 
     try {
-        loadYaml(readFileSync(configYaml, "utf8"));
+        loadYaml(substituteEnvironmentVars(readFileSync(configYaml, "utf8")));
         return true;
     } catch (e) {
-        return { ...(e as Record<string, unknown>), config };
+        // normalize both js-yaml's YAMLException (name, reason, mark) and substitution errors (name, message)
+        const error = e as { name?: string; reason?: string; message?: string; mark?: { line?: number } };
+        return { name: error.name, reason: error.reason ?? error.message, mark: error.mark, config };
     }
 }
 
@@ -68,6 +71,16 @@ function getCachedEnvironmentVars(): EnvironmentVar[] {
     return cachedVars;
 }
 
+function readVarFile(name: string, path: string): string {
+    if (!existsSync(path)) {
+        throw new Error(`${envPrefix}${name} points to a file that does not exist: ${path || "(empty)"}`);
+    }
+    if (!statSync(path).isFile()) {
+        throw new Error(`${envPrefix}${name} does not point to a file: ${path}`);
+    }
+    return readFileSync(path, "utf8");
+}
+
 export function substituteEnvironmentVars(str: string) {
     let result = str;
     if (result.includes("{{")) {
@@ -78,9 +91,16 @@ export function substituteEnvironmentVars(str: string) {
             if (!result.includes(placeholder)) return;
 
             // files are read only when their placeholder is used
-            const replacement = name.startsWith(fileType) ? readFileSync(value, "utf8") : value;
+            const replacement = name.startsWith(fileType) ? readVarFile(name, value) : value;
             result = result.replaceAll(placeholder, () => replacement);
         });
+
+        const missing = result.match(unresolvedPlaceholder);
+        if (missing) {
+            throw new Error(
+                `Missing environment variable(s) referenced in config: ${[...new Set(missing)].join(", ")}`
+            );
+        }
     }
     return result;
 }

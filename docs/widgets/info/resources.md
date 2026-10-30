@@ -49,7 +49,7 @@ You can also pass a `label` option, which allows you to group resources under na
 
 Which produces something like this,
 
-<img width="373" alt="Resource Groups" src="../../../assets/widget_resources_groups.png">
+<img width="373" alt="Resource Groups" src="../../assets/widget_resources_groups.png">
 
 If you have more than a single disk and would like to group them together under the same label, you can pass an array of paths instead,
 
@@ -64,7 +64,7 @@ If you have more than a single disk and would like to group them together under 
 
 To produce something like this,
 
-<img width="369" alt="Screenshot 2022-09-11 at 2 15 42 PM" src="../../../assets/widget_resources_multiple_disks.png">
+<img width="369" alt="Screenshot 2022-09-11 at 2 15 42 PM" src="../../assets/widget_resources_multiple_disks.png">
 
 You can additionally supply an optional `expanded` property set to true in order to show additional details about the resources. By default the expanded property is set to false when not supplied.
 

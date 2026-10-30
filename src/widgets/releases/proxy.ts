@@ -6,7 +6,13 @@ import getServiceWidget from "@/utils/config/service-helpers";
 import { errorMessage } from "@/utils/error";
 import createLogger from "@/utils/logger";
 import { httpProxy } from "@/utils/proxy/http";
-import type { Release, ReleaseRepository, ReleaseServiceConfig, ReleasesOptions } from "@/widgets/releases/types";
+import type {
+    FailedRelease,
+    Release,
+    ReleaseRepository,
+    ReleaseServiceConfig,
+    ReleasesOptions,
+} from "@/widgets/releases/types";
 import { parseRepository, parseServicesConfig, services } from "@/widgets/releases/utils";
 
 const logger = createLogger("releasesProxyHandler");
@@ -64,11 +70,15 @@ export default async function releasesProxyHandler(req: ApiRequest, res: ApiResp
     const results = await Promise.allSettled(requests.map((request) => fetchRelease(request, config[request.service])));
 
     const releases: Release[] = [];
+    const failures: FailedRelease[] = [];
     results.forEach((result, i) => {
         if (result.status === "fulfilled") {
             releases.push(result.value);
         } else {
-            logger.error("Failed to fetch %s release for %s: %s", requests[i].service, requests[i].repo, result.reason);
+            const { service, repo } = requests[i];
+            const reason = errorMessage(result.reason) ?? String(result.reason);
+            logger.error("Failed to fetch %s release for %s: %s", service, repo, result.reason);
+            failures.push({ service, repo, reason });
         }
     });
 
@@ -81,6 +91,7 @@ export default async function releasesProxyHandler(req: ApiRequest, res: ApiResp
     const limit = parseInt(String(options?.limit), 10);
     return res.status(200).json({
         releases: releases.slice(0, limit > 0 ? limit : 10),
-        failed: requests.length - releases.length,
+        failed: failures.length,
+        failures,
     });
 }

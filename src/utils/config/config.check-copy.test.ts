@@ -79,12 +79,38 @@ describe("utils/config/config checkAndCopyConfig", () => {
         fs.existsSync.mockReturnValueOnce(true);
         fs.readFileSync.mockReturnValueOnce("bad");
         yaml.load.mockImplementationOnce(() => {
-            throw Object.assign(new Error("yaml bad"), { name: "YAMLException" });
+            throw Object.assign(new Error("yaml bad"), {
+                name: "YAMLException",
+                reason: "yaml bad",
+                mark: { line: 2 },
+            });
         });
 
         const mod = await import("@/utils/config/config");
         const result = mod.default("services.yaml");
 
-        expect(result).toEqual(expect.objectContaining({ name: "YAMLException", config: "services.yaml" }));
+        expect(result).toEqual({
+            name: "YAMLException",
+            reason: "yaml bad",
+            mark: { line: 2 },
+            config: "services.yaml",
+        });
+    });
+
+    it("returns a template error with config name when a referenced variable is missing", async () => {
+        fs.existsSync.mockReturnValueOnce(true);
+        fs.existsSync.mockReturnValueOnce(true);
+        fs.readFileSync.mockReturnValueOnce("rate: {{FOYER_VAR_REFRESH_RATE_MS}}");
+
+        const mod = await import("@/utils/config/config");
+        const result = mod.default("services.yaml");
+
+        expect(result).toEqual({
+            name: "Error",
+            reason: "Missing environment variable(s) referenced in config: {{FOYER_VAR_REFRESH_RATE_MS}}",
+            mark: undefined,
+            config: "services.yaml",
+        });
+        expect(yaml.load).not.toHaveBeenCalled();
     });
 });

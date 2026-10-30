@@ -88,6 +88,7 @@ export default function Component({ service }: WidgetProps<ReleasesOptions>) {
     const collapseAfter = parsedCollapseAfter === -1 || parsedCollapseAfter > 0 ? parsedCollapseAfter : 5;
     const canCollapse = collapseAfter !== -1 && data.releases.length > collapseAfter;
     const releases = canCollapse && !expanded ? data.releases.slice(0, collapseAfter) : data.releases;
+    const failures = data.failures ?? [];
 
     return (
         <Container service={service}>
@@ -102,7 +103,26 @@ export default function Component({ service }: WidgetProps<ReleasesOptions>) {
                 ))}
                 {(canCollapse || data.failed > 0) && (
                     <div className="flex items-center justify-between px-2 text-xs text-theme-500 dark:text-theme-400">
-                        <span>{data.failed > 0 && t("releases.failed", { count: data.failed })}</span>
+                        <span
+                            className={classNames(data.failed > 0 && "relative group text-red-600 dark:text-red-400")}
+                        >
+                            {data.failed > 0 && t("releases.failed", { count: data.failed })}
+                            {failures.length > 0 && (
+                                <div
+                                    className={classNames(
+                                        "hidden group-hover:flex flex-col gap-0.5 absolute bottom-full left-0 mb-1 z-10",
+                                        "w-max max-w-72 rounded-md border border-yellow-500/50 px-2 py-1.5",
+                                        "bg-yellow-50 dark:bg-yellow-950 text-yellow-800 dark:text-yellow-200"
+                                    )}
+                                >
+                                    {failures.map(({ service: failedService, repo, reason }) => (
+                                        <span key={`${failedService}:${repo}`} className="truncate text-left">
+                                            {failedService}:{repo} — {reason}
+                                        </span>
+                                    ))}
+                                </div>
+                            )}
+                        </span>
                         {canCollapse && (
                             <button
                                 type="button"

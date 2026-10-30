@@ -5,7 +5,7 @@ description: Calendar widget
 
 ## Monthly view
 
-<img alt="calendar" src="../../../assets/widget_calendar_monthly.png">
+<img alt="calendar" src="../../assets/widget_calendar_monthly.png">
 
 This widget shows monthly calendar, with optional integrations to show events from supported widgets.
 

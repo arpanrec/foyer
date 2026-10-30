@@ -162,6 +162,7 @@ describe("widgets/releases/proxy", () => {
         expect(partial.statusCode).toBe(200);
         expect(partial.body.releases).toHaveLength(1);
         expect(partial.body.failed).toBe(1);
+        expect(partial.body.failures).toEqual([{ service: "github", repo: "a/missing", reason: "HTTP 404" }]);
         expect(logger.error).toHaveBeenCalledWith(
             "Failed to fetch %s release for %s: %s",
             "github",
@@ -175,6 +176,18 @@ describe("widgets/releases/proxy", () => {
         await releasesProxyHandler(req, failed as ApiResponse);
         expect(failed.statusCode).toBe(500);
         expect(failed.body).toEqual({ error: { message: "Unable to fetch any releases" } });
+    });
+
+    it("falls back to String(reason) when a failure rejects with a non-Error value", async () => {
+        getServiceWidget.mockResolvedValue({ type: "releases", repositories: [gh("a/ok"), gh("a/broken")] });
+        httpProxy.mockImplementation(async (url) =>
+            url.includes("broken") ? Promise.reject("network down") : json(githubRelease("1.0", "2026-01-01T00:00:00Z"))
+        );
+
+        const res = createMockRes<ReleasesBody>();
+        await releasesProxyHandler(req, res as ApiResponse);
+
+        expect(res.body.failures).toEqual([{ service: "github", repo: "a/broken", reason: "network down" }]);
     });
 
     it("caches successful fetches only", async () => {

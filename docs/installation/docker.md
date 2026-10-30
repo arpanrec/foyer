@@ -56,3 +56,4 @@ You can also include environment variables in your config files to protect sensi
 - Environment variables must start with `FOYER_VAR_` or `FOYER_FILE_`
 - The value of env var `FOYER_VAR_XXX` will replace `{{FOYER_VAR_XXX}}` in any config
 - The value of env var `FOYER_FILE_XXX` must be a file path, the contents of which will be used to replace `{{FOYER_FILE_XXX}}` in any config
+- A config fails to load immediately if it references a placeholder whose variable is not set, or if a `FOYER_FILE_XXX` path is missing or not a regular file — see [Environment Variables](../configs/environment-variables.md#config-placeholders)

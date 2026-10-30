@@ -21,4 +21,5 @@ widget:
     username: username
     password: password
     key: komgaapikey # optional
+    version: 2 # optional, default is 1
 ```

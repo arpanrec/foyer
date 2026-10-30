@@ -28,4 +28,5 @@ widget:
     enableMediaControl: false # optional, defaults to true
     showEpisodeNumber: true # optional, defaults to false
     expandOneStreamToTwoRows: false # optional, defaults to true
+    deviceId: my-device-id # optional, defaults to a value derived from the service's group and name
 ```

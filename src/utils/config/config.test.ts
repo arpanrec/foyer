@@ -36,6 +36,43 @@ describe("utils/config/config", () => {
         expect(() => mod.substituteEnvironmentVars("{{FOYER_FILE_EMPTY}}")).toThrow();
     });
 
+    it("substituteEnvironmentVars fails immediately when a referenced VAR is not set", async () => {
+        const mod = await import("@/utils/config/config");
+        expect(() => mod.substituteEnvironmentVars("token={{FOYER_VAR_UNSET}}")).toThrow(
+            "Missing environment variable(s) referenced in config: {{FOYER_VAR_UNSET}}"
+        );
+    });
+
+    it("substituteEnvironmentVars fails immediately when a referenced FILE is not set", async () => {
+        const mod = await import("@/utils/config/config");
+        expect(() => mod.substituteEnvironmentVars("token={{FOYER_FILE_UNSET}}")).toThrow(
+            "Missing environment variable(s) referenced in config: {{FOYER_FILE_UNSET}}"
+        );
+    });
+
+    it("substituteEnvironmentVars fails when a FILE variable points to a missing path", async () => {
+        process.env.FOYER_FILE_MISSING = path.join(tmpdir(), "foyer-config-test-missing", "secret.txt");
+
+        const mod = await import("@/utils/config/config");
+        expect(() => mod.substituteEnvironmentVars("{{FOYER_FILE_MISSING}}")).toThrow(
+            "FOYER_FILE_MISSING points to a file that does not exist"
+        );
+    });
+
+    it("substituteEnvironmentVars fails when a FILE variable points to a directory", async () => {
+        const dir = mkdtempSync(path.join(tmpdir(), "foyer-config-test-"));
+        process.env.FOYER_FILE_DIR = dir;
+
+        try {
+            const mod = await import("@/utils/config/config");
+            expect(() => mod.substituteEnvironmentVars("{{FOYER_FILE_DIR}}")).toThrow(
+                "FOYER_FILE_DIR does not point to a file"
+            );
+        } finally {
+            rmdirSync(dir);
+        }
+    });
+
     it("substituteEnvironmentVars replaces FOYER_FILE_* placeholders with file contents", async () => {
         const dir = mkdtempSync(path.join(tmpdir(), "foyer-config-test-"));
         const secretPath = path.join(dir, "secret.txt");

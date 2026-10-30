@@ -71,3 +71,7 @@ Any variable whose name starts with `FOYER_VAR_` or `FOYER_FILE_` can be used in
 | `FOYER_FILE_<NAME>` | Holds a file path. Replaces `{{FOYER_FILE_<NAME>}}` in any config file with the contents of that file, for Docker secrets. |
 
 See [Using Environment Secrets](../installation/docker.md#using-environment-secrets).
+
+Loading a config file fails immediately if it references a `{{FOYER_VAR_<NAME>}}` or `{{FOYER_FILE_<NAME>}}`
+placeholder whose variable is not set, if a `FOYER_FILE_<NAME>` path does not exist, or if it points to something
+other than a regular file.

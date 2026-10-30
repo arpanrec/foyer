@@ -17,7 +17,7 @@ An optional 'site' parameter can be supplied, if it is not the widget will use t
 
     If you enter e.g. incorrect credentials and receive an "API Error", you may need to recreate the container to clear the cache.
 
-<img width="162" alt="unifi_infowidget" src="../../../assets/widget_unifi_controller_demo.png">
+<img width="162" alt="unifi_infowidget" src="../../assets/widget_unifi_controller_demo.png">
 
 ```yaml
 - unifi_console:

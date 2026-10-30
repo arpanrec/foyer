@@ -23,6 +23,11 @@
     "auth": {
         "signout": "Sign out"
     },
+    "errorBoundary": {
+        "title": "Something went wrong",
+        "retry": "Try again",
+        "digest": "Reference: {{digest}}"
+    },
     "widget": {
         "missing_type": "Missing Widget Type: {{type}}",
         "api_error": "API Error",

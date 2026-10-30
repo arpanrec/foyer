@@ -152,7 +152,8 @@ function Index({ initialSettings, fallback }: DashboardProps) {
                             </div>
                             <div className="p-2 text-theme-100 dark:text-theme-200">
                                 <pre className="opacity-50 font-bold pb-2">
-                                    Reason: &quot;{error.reason}&quot; at line {error.mark?.line}
+                                    Reason: &quot;{error.reason}&quot;
+                                    {error.mark?.line !== undefined && ` at line ${error.mark.line}`}
                                 </pre>
                                 <pre className="font-italic">Check logs for details.</pre>
                             </div>

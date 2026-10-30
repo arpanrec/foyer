@@ -1,7 +1,8 @@
 # =========================
 # Builder Stage
 # =========================
-FROM node:26-slim AS builder
+# https://hub.docker.com/layers/library/node/26-alpine/images/sha256-c6ad9e9c1d80f6eb607c26b4b0a132ff7a2344fad1c78ea3baa2a7d4c8de6d94
+FROM docker.io/library/node@sha256:c6ad9e9c1d80f6eb607c26b4b0a132ff7a2344fad1c78ea3baa2a7d4c8de6d94 AS builder
 WORKDIR /app
 
 # Setup
@@ -31,7 +32,8 @@ RUN if [ "$CI" != "true" ]; then \
 # =========================
 # Runtime Stage
 # =========================
-FROM node:26-alpine AS runner
+# https://hub.docker.com/layers/library/node/26-alpine/images/sha256-c6ad9e9c1d80f6eb607c26b4b0a132ff7a2344fad1c78ea3baa2a7d4c8de6d94
+FROM docker.io/library/node@sha256:c6ad9e9c1d80f6eb607c26b4b0a132ff7a2344fad1c78ea3baa2a7d4c8de6d94 AS runner
 LABEL org.opencontainers.image.title="Foyer"
 LABEL org.opencontainers.image.description="A self-hosted services landing page, with docker and service integrations."
 LABEL org.opencontainers.image.url="https://github.com/arpanrec/foyer"

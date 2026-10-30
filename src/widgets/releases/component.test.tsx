@@ -89,12 +89,20 @@ describe("widgets/releases/component", () => {
                     { ...releases[1], downvotes: 3 },
                 ],
                 failed: 2,
+                failures: [
+                    { service: "github", repo: "owner/missing", reason: "HTTP 404" },
+                    { service: "gitlab", repo: "owner/broken", reason: "HTTP 500" },
+                ],
             },
             error: undefined,
         });
         render();
 
-        expect(screen.getByText("releases.failed")).toBeInTheDocument();
+        const failedText = screen.getByText("releases.failed");
+        expect(failedText).toBeInTheDocument();
+        expect(failedText).toHaveClass("text-red-600");
+        expect(screen.getByText("github:owner/missing — HTTP 404")).toBeInTheDocument();
+        expect(screen.getByText("gitlab:owner/broken — HTTP 500")).toBeInTheDocument();
         expect(screen.getAllByText(/⚠/)).toHaveLength(1);
     });
 });

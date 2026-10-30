@@ -29,9 +29,16 @@ export type ParsedRelease = {
 
 export type Release = ParsedRelease & { source: string };
 
+export type FailedRelease = {
+    service: string;
+    repo: string;
+    reason: string;
+};
+
 export type ReleasesData = {
     releases: Release[];
     failed: number;
+    failures: FailedRelease[];
 };
 
 export type GithubRelease = {

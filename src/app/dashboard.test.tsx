@@ -257,6 +257,15 @@ describe("app/dashboard Index routing + SWR branches", () => {
         expect(screen.getByText(/line 4/)).toBeInTheDocument();
     });
 
+    it("renders config errors without a line number when the error has none", async () => {
+        state.validateData = [{ config: "services.yaml", name: "Error", reason: "Missing environment variable(s)" }];
+
+        await renderIndex({ initialSettings: { title: "Foyer", layout: {} }, settings: { layout: {} } });
+
+        expect(screen.getByText(/Missing environment variable\(s\)/)).toBeInTheDocument();
+        expect(screen.queryByText(/at line/)).toBeNull();
+    });
+
     it("marks the UI stale when the hash changes and triggers a revalidate reload", async () => {
         state.validateData = [];
         state.hashData = { hash: "new-hash" };
