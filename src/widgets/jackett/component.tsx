@@ -1,0 +1,37 @@
+import { useTranslation } from "next-i18next/pages";
+
+import Block from "@/components/services/widget/block";
+import Container from "@/components/services/widget/container";
+import type { WidgetProps } from "@/types/service";
+import useWidgetAPI from "@/utils/proxy/use-widget-api";
+import type { JackettIndexer } from "@/widgets/jackett/types";
+
+export default function Component({ service }: WidgetProps) {
+    const { t } = useTranslation();
+
+    const { widget } = service;
+
+    const { data: indexersData, error: indexersError } = useWidgetAPI<JackettIndexer[]>(widget, "indexers");
+
+    if (indexersError) {
+        return <Container service={service} error={indexersError} />;
+    }
+
+    if (!indexersData) {
+        return (
+            <Container service={service}>
+                <Block label="jackett.configured" />
+                <Block label="jackett.errored" />
+            </Container>
+        );
+    }
+
+    const errored = indexersData.filter((indexer) => indexer.last_error);
+
+    return (
+        <Container service={service}>
+            <Block label="jackett.configured" value={t("common.number", { value: indexersData.length })} />
+            <Block label="jackett.errored" value={t("common.number", { value: errored.length })} />
+        </Container>
+    );
+}

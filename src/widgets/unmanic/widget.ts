@@ -1,0 +1,29 @@
+import { asJson } from "@/utils/proxy/api-helpers";
+import genericProxyHandler from "@/utils/proxy/handlers/generic";
+import type { UnmanicRawWorkers } from "@/widgets/unmanic/types";
+
+const widget = {
+    api: "{url}/unmanic/api/v2/{endpoint}",
+    proxyHandler: genericProxyHandler,
+
+    mappings: {
+        workers: {
+            endpoint: "workers/status",
+            map: (data: unknown) => {
+                const workers = asJson<UnmanicRawWorkers>(data).workers_status;
+                return {
+                    total_workers: workers.length,
+                    active_workers: workers.filter((worker) => !worker.idle).length,
+                };
+            },
+        },
+        pending: {
+            method: "POST",
+            body: "{}",
+            endpoint: "pending/tasks",
+            validate: ["recordsTotal"],
+        },
+    },
+};
+
+export default widget;

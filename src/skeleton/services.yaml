@@ -1,0 +1,18 @@
+---
+# For configuration options and examples, please see:
+# https://foyer.arpanrec.com/configs/services/
+
+- My First Group:
+      - My First Service:
+            href: http://localhost/
+            description: Foyer is awesome
+
+- My Second Group:
+      - My Second Service:
+            href: http://localhost/
+            description: Foyer is the best
+
+- My Third Group:
+      - My Third Service:
+            href: http://localhost/
+            description: Foyer is 😎

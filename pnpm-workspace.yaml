@@ -1,0 +1,8 @@
+allowBuilds:
+    cpu-features: true
+    protobufjs: true
+    ssh2: true
+minimumReleaseAgeExclude:
+    - "@types/node@26.6.6"
+    - systeminformation@5.33.18
+    - urbackup-server-api@0.100.0

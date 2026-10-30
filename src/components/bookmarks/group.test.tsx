@@ -1,0 +1,96 @@
+// @vitest-environment jsdom
+
+import { render, screen, waitFor } from "@testing-library/react";
+import type { ComponentPropsWithoutRef, ElementType, ForwardedRef, ReactNode } from "react";
+import { describe, expect, it, vi } from "vitest";
+
+vi.mock("@headlessui/react", async () => {
+    const React = await import("react");
+    const { Fragment } = React;
+
+    function Transition({ as: As = Fragment, children }: { as?: ElementType; children: ReactNode }) {
+        if (As === Fragment) return <>{children}</>;
+        return <As>{children}</As>;
+    }
+
+    function Disclosure({
+        defaultOpen = true,
+        children,
+    }: {
+        defaultOpen?: boolean;
+        children: ReactNode | ((state: { open: boolean }) => ReactNode);
+    }) {
+        const content = typeof children === "function" ? children({ open: defaultOpen }) : children;
+        return <div>{content}</div>;
+    }
+
+    function DisclosureButton(props: ComponentPropsWithoutRef<"button">) {
+        return <button type="button" {...props} />;
+    }
+
+    const DisclosurePanel = React.forwardRef(function DisclosurePanel(
+        props: ComponentPropsWithoutRef<"div"> & { static?: boolean },
+        ref: ForwardedRef<HTMLDivElement>
+    ) {
+        // HeadlessUI uses a boolean `static` prop; avoid forwarding it to the DOM.
+        const { static: _static, ...rest } = props;
+        return <div ref={ref} data-testid="disclosure-panel" {...rest} />;
+    });
+
+    Disclosure.Button = DisclosureButton;
+    Disclosure.Panel = DisclosurePanel;
+
+    return { Disclosure, Transition };
+});
+
+vi.mock("@/components/bookmarks/list", () => ({
+    default: function BookmarksListMock({ bookmarks }: { bookmarks?: unknown[] }) {
+        return <div data-testid="bookmarks-list">count:{bookmarks?.length ?? 0}</div>;
+    },
+}));
+
+vi.mock("@/components/errorboundry", () => ({
+    default: function ErrorBoundaryMock({ children }: { children: ReactNode }) {
+        return <>{children}</>;
+    },
+}));
+
+vi.mock("@/components/resolvedicon", () => ({
+    default: function ResolvedIconMock() {
+        return <div data-testid="resolved-icon" />;
+    },
+}));
+
+import BookmarksGroup from "@/components/bookmarks/group";
+
+describe("components/bookmarks/group", () => {
+    it("renders the group header and list", () => {
+        render(
+            <BookmarksGroup
+                bookmarks={{ name: "Bookmarks", bookmarks: [{ name: "A", href: "http://example.com" }] }}
+                layout={{ icon: "mdi:test" }}
+                disableCollapse={false}
+                groupsInitiallyCollapsed={false}
+            />
+        );
+
+        expect(screen.getByText("Bookmarks")).toBeInTheDocument();
+        expect(screen.getByTestId("resolved-icon")).toBeInTheDocument();
+        expect(screen.getByTestId("bookmarks-list")).toHaveTextContent("count:1");
+    });
+
+    it("sets the panel height to 0 when initially collapsed", async () => {
+        render(
+            <BookmarksGroup
+                bookmarks={{ name: "Bookmarks", bookmarks: [] }}
+                layout={{ initiallyCollapsed: true }}
+                groupsInitiallyCollapsed={false}
+            />
+        );
+
+        const panel = screen.getByTestId("disclosure-panel");
+        await waitFor(() => {
+            expect(panel.style.height).toBe("0px");
+        });
+    });
+});

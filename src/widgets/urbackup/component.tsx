@@ -1,0 +1,105 @@
+import { useTranslation } from "next-i18next/pages";
+
+import Block from "@/components/services/widget/block";
+import Container from "@/components/services/widget/container";
+import type { WidgetProps } from "@/types/service";
+import useWidgetAPI from "@/utils/proxy/use-widget-api";
+import type { UrbackupClient, UrbackupStatus } from "@/widgets/urbackup/types";
+
+const Status = Object.freeze({
+    ok: Symbol("Ok"),
+    errored: Symbol("Errored"),
+    noRecent: Symbol("No Recent Backups"),
+});
+
+function hasRecentBackups(client: UrbackupClient, maxDays?: number) {
+    const days = maxDays || 3;
+    const diffTime = days * 24 * 60 * 60; // 7 days
+    const recentFile = client.lastbackup > Date.now() / 1000 - diffTime;
+    const recentImage =
+        client.image_not_supported || client.image_disabled || client.lastbackup_image > Date.now() / 1000 - diffTime;
+    return recentFile && recentImage;
+}
+
+function determineStatuses(urbackupData: UrbackupStatus) {
+    let ok = 0;
+    let errored = 0;
+    let noRecent = 0;
+    let status;
+    urbackupData.clientStatuses.forEach((client) => {
+        status = Status.noRecent;
+        if (hasRecentBackups(client, urbackupData.maxDays)) {
+            status =
+                client.file_ok && (client.image_ok || client.image_not_supported || client.image_disabled)
+                    ? Status.ok
+                    : Status.errored;
+        }
+        switch (status) {
+            case Status.ok:
+                ok += 1;
+                break;
+            case Status.errored:
+                errored += 1;
+                break;
+            case Status.noRecent:
+                noRecent += 1;
+                break;
+            default:
+                break;
+        }
+    });
+
+    // calculate total disk space if provided
+    const totalUsage: number | false = urbackupData.diskUsage
+        ? urbackupData.diskUsage.reduce((sum, client) => sum + client.used, 0)
+        : false;
+
+    return { ok, errored, noRecent, totalUsage };
+}
+
+export default function Component({ service }: WidgetProps) {
+    const { t } = useTranslation();
+
+    const { widget } = service;
+
+    const showDiskUsage = widget.fields?.includes("totalUsed");
+
+    const { data: urbackupData, error: urbackupError } = useWidgetAPI<UrbackupStatus>(widget, "status");
+
+    if (urbackupError) {
+        return <Container service={service} error={urbackupError} />;
+    }
+
+    if (!urbackupData) {
+        return (
+            <Container service={service}>
+                <Block label="urbackup.ok" />
+                <Block label="urbackup.errored" />
+                <Block label="urbackup.noRecent" />
+                {showDiskUsage && <Block label="urbackup.totalUsed" />}
+            </Container>
+        );
+    }
+
+    const statusData = determineStatuses(urbackupData);
+
+    return (
+        <Container service={service}>
+            <Block label="urbackup.ok" value={t("common.number", { value: parseInt(String(statusData.ok), 10) })} />
+            <Block
+                label="urbackup.errored"
+                value={t("common.number", { value: parseInt(String(statusData.errored), 10) })}
+            />
+            <Block
+                label="urbackup.noRecent"
+                value={t("common.number", { value: parseInt(String(statusData.noRecent), 10) })}
+            />
+            {showDiskUsage && (
+                <Block
+                    label="urbackup.totalUsed"
+                    value={t("common.bbytes", { value: parseFloat(String(statusData.totalUsage)) })}
+                />
+            )}
+        </Container>
+    );
+}

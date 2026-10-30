@@ -1,0 +1,25 @@
+{
+    "name": "foyer",
+    "build": {
+        "dockerfile": "Dockerfile",
+        "args": {
+            "VARIANT": "18-bullseye"
+        }
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "oxc.oxc-vscode",
+                "mhutchie.git-graph",
+                "streetsidesoftware.code-spell-checker",
+                "esbenp.prettier-vscode"
+            ],
+            "settings": {
+                "[typescript]": { "editor.defaultFormatter": "oxc.oxc-vscode" },
+                "[typescriptreact]": { "editor.defaultFormatter": "oxc.oxc-vscode" }
+            }
+        }
+    },
+    "postCreateCommand": ".devcontainer/setup.sh",
+    "forwardPorts": [3000]
+}

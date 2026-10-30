@@ -1,0 +1,37 @@
+import { useTranslation } from "next-i18next/pages";
+
+import Block from "@/components/services/widget/block";
+import Container from "@/components/services/widget/container";
+import type { WidgetProps } from "@/types/service";
+import useWidgetAPI from "@/utils/proxy/use-widget-api";
+import type { BazarrWanted } from "@/widgets/bazarr/types";
+
+export default function Component({ service }: WidgetProps) {
+    const { t } = useTranslation();
+
+    const { widget } = service;
+
+    const { data: episodesData, error: episodesError } = useWidgetAPI<BazarrWanted>(widget, "episodes");
+    const { data: moviesData, error: moviesError } = useWidgetAPI<BazarrWanted>(widget, "movies");
+
+    if (moviesError || episodesError) {
+        const finalError = moviesError ?? episodesError;
+        return <Container service={service} error={finalError} />;
+    }
+
+    if (!episodesData || !moviesData) {
+        return (
+            <Container service={service}>
+                <Block label="bazarr.missingEpisodes" />
+                <Block label="bazarr.missingMovies" />
+            </Container>
+        );
+    }
+
+    return (
+        <Container service={service}>
+            <Block label="bazarr.missingEpisodes" value={t("common.number", { value: episodesData.total })} />
+            <Block label="bazarr.missingMovies" value={t("common.number", { value: moviesData.total })} />
+        </Container>
+    );
+}

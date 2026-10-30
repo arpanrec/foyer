@@ -1,0 +1,19 @@
+# Ignore everything, then allow only what the Dockerfile needs.
+*
+
+# Build inputs
+!package.json
+!pnpm-lock.yaml
+!pnpm-workspace.yaml
+!tsconfig.json
+!.prettierrc.mts
+!*.ts
+!src/
+!public/
+
+# Runtime
+!docker-entrypoint.sh
+
+# Prebuilt app supplied by CI
+!.next/standalone/
+!.next/static/

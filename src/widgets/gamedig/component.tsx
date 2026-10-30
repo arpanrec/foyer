@@ -1,0 +1,60 @@
+import { useTranslation } from "next-i18next/pages";
+
+import Block from "@/components/services/widget/block";
+import Container from "@/components/services/widget/container";
+import type { WidgetProps } from "@/types/service";
+import useWidgetAPI from "@/utils/proxy/use-widget-api";
+import withWidgetFields from "@/utils/widget-fields";
+import type { GamedigOptions, GamedigStatus } from "@/widgets/gamedig/types";
+
+const DEFAULT_FIELDS = ["map", "currentPlayers", "ping"];
+
+export default function Component({ service: configuredService }: WidgetProps<GamedigOptions>) {
+    const service = withWidgetFields(configuredService, DEFAULT_FIELDS);
+    const { widget } = service;
+    const { data: serverData, error: serverError } = useWidgetAPI<GamedigStatus>(widget, "status");
+    const { t } = useTranslation();
+
+    if (serverError) {
+        return <Container service={service} error={serverError} />;
+    }
+
+    if (!serverData) {
+        return (
+            <Container service={service}>
+                <Block label="gamedig.status" />
+                <Block label="gamedig.name" />
+                <Block label="gamedig.map" />
+                <Block label="gamedig.currentPlayers" />
+                <Block label="gamedig.players" />
+                <Block label="gamedig.maxPlayers" />
+                <Block label="gamedig.bots" />
+                <Block label="gamedig.ping" />
+            </Container>
+        );
+    }
+
+    const status = serverData.online ? t("gamedig.online") : t("gamedig.offline");
+    const name = serverData.online ? serverData.name : "-";
+    const map = serverData.online ? serverData.map : "-";
+    const currentPlayers = serverData.online ? `${serverData.players} / ${serverData.maxplayers}` : "-";
+    const players = serverData.online ? `${serverData.players}` : "-";
+    const maxPlayers = serverData.online ? `${serverData.maxplayers}` : "-";
+    const bots = serverData.online ? `${serverData.bots}` : "-";
+    const ping = serverData.online
+        ? `${t("common.ms", { value: serverData.ping, style: "unit", unit: "millisecond" })}`
+        : "-";
+
+    return (
+        <Container service={service}>
+            <Block label="gamedig.status" value={status} />
+            <Block label="gamedig.name" value={name} />
+            <Block label="gamedig.map" value={map} />
+            <Block label="gamedig.currentPlayers" value={currentPlayers} />
+            <Block label="gamedig.players" value={players} />
+            <Block label="gamedig.maxPlayers" value={maxPlayers} />
+            <Block label="gamedig.bots" value={bots} />
+            <Block label="gamedig.ping" value={ping} highlightValue={serverData.online ? serverData.ping : undefined} />
+        </Container>
+    );
+}

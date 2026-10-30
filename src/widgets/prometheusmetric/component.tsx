@@ -1,0 +1,116 @@
+import { useTranslation } from "next-i18next/pages";
+
+import Block from "@/components/services/widget/block";
+import Container from "@/components/services/widget/container";
+import type { WidgetProps } from "@/types/service";
+import useWidgetAPI from "@/utils/proxy/use-widget-api";
+import type { PrometheusMetric, PrometheusQueryData, PrometheusmetricOptions } from "@/widgets/prometheusmetric/types";
+
+type Translate = (key: string, options?: Record<string, unknown>) => string;
+
+function formatValue(t: Translate, metric: PrometheusMetric, rawValue: string | undefined) {
+    if (!metric?.format) return rawValue;
+    if (!rawValue) return "-";
+
+    let value: string | number = rawValue;
+
+    // Scale the value. Accepts either a number to multiply by or a string
+    // like "12/345".
+    const scale = metric?.format?.scale;
+    if (typeof scale === "number") {
+        value = Number(value) * scale;
+    } else if (typeof scale === "string" && scale.includes("/")) {
+        const parts = scale.split("/");
+        const numerator = parts[0] ? parseFloat(parts[0]) : 1;
+        const denominator = parts[1] ? parseFloat(parts[1]) : 1;
+        value = (Number(value) * numerator) / denominator;
+    } else {
+        value = parseFloat(String(value));
+    }
+
+    // Format the value using a known type and optional options.
+    switch (metric?.format?.type) {
+        case "text":
+            break;
+        default:
+            value = t(`common.${metric.format.type}`, { value, ...metric.format?.options });
+    }
+
+    // Apply fixed prefix.
+    const prefix = metric?.format?.prefix;
+    if (prefix) {
+        value = `${prefix}${value}`;
+    }
+
+    // Apply fixed suffix.
+    const suffix = metric?.format?.suffix;
+    if (suffix) {
+        value = `${value}${suffix}`;
+    }
+
+    return value;
+}
+
+export default function Component({ service }: WidgetProps<PrometheusmetricOptions>) {
+    const { t } = useTranslation();
+
+    const { widget } = service;
+
+    const { metrics: allMetrics = [], refreshInterval = 10000 } = widget;
+    const metrics = allMetrics.slice(0, 4);
+
+    const metricResults = metrics.map((metric) => {
+        // disable the rule that hooks should not be called from a callback,
+        // because we don't need a strong guarantee of hook execution order here.
+        // eslint-disable-next-line react-hooks/rules-of-hooks
+        const { data, error } = useWidgetAPI<PrometheusQueryData>(widget, "query", {
+            query: metric.query,
+            refreshInterval: Math.max(1000, metric.refreshInterval ?? refreshInterval),
+        });
+        return { key: metric.key ?? metric.label, data, error };
+    });
+
+    const prometheusmetricError = metricResults.find(({ error }) => error)?.error;
+    const prometheusmetricData = new Map(metricResults.map(({ key, data }) => [key, data] as const));
+
+    if (prometheusmetricError) {
+        return <Container service={service} error={prometheusmetricError} />;
+    }
+
+    if (!prometheusmetricData) {
+        return (
+            <Container service={service}>
+                {metrics.map((item) => (
+                    <Block label={item.label} key={item.label} />
+                ))}
+            </Container>
+        );
+    }
+
+    function getResultValue(data: PrometheusQueryData | undefined) {
+        // Fetches the first metric result from the Prometheus query result data.
+        // The first element in the result value is the timestamp which is ignored here.
+        const queryResult = data?.data;
+
+        switch (queryResult?.resultType) {
+            case "vector":
+                return queryResult.result?.[0]?.value?.[1];
+            case "scalar":
+                return queryResult.result?.[1];
+            default:
+                return "";
+        }
+    }
+
+    return (
+        <Container service={service}>
+            {metrics.map((metric) => (
+                <Block
+                    label={metric.label}
+                    key={metric.key ?? metric.label}
+                    value={formatValue(t, metric, getResultValue(prometheusmetricData.get(metric.key ?? metric.label)))}
+                />
+            ))}
+        </Container>
+    );
+}

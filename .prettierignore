@@ -1,0 +1,9 @@
+/pnpm-lock.yaml
+/config/*
+/node_modules
+/site
+/.next
+/dist
+/out
+/build
+next-env.d.ts
