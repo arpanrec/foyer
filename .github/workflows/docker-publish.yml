@@ -1,3 +1,4 @@
+---
 name: Docker CI
 
 on:
@@ -36,6 +37,9 @@ jobs:
             - name: Extract Docker metadata
               id: meta
               uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
+              env:
+                  # Multi-arch images need annotations on the index for GHCR to show the description
+                  DOCKER_METADATA_ANNOTATIONS_LEVELS: manifest,index
               with:
                   images: |
                       ghcr.io/${{ env.IMAGE_NAME }}
@@ -103,6 +107,7 @@ jobs:
                   push: ${{ github.event_name != 'pull_request' }}
                   tags: ${{ steps.meta.outputs.tags }}
                   labels: ${{ steps.meta.outputs.labels }}
+                  annotations: ${{ steps.meta.outputs.annotations }}
                   build-args: |
                       CI=true
                       BUILDTIME=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}

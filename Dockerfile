@@ -34,8 +34,9 @@ RUN if [ "$CI" != "true" ]; then \
 # =========================
 # https://hub.docker.com/layers/library/node/26-alpine/images/sha256-c6ad9e9c1d80f6eb607c26b4b0a132ff7a2344fad1c78ea3baa2a7d4c8de6d94
 FROM docker.io/library/node@sha256:c6ad9e9c1d80f6eb607c26b4b0a132ff7a2344fad1c78ea3baa2a7d4c8de6d94 AS runner
+ARG DESCRIPTION="A self-hosted services landing page, with docker and service integrations."
 LABEL org.opencontainers.image.title="Foyer"
-LABEL org.opencontainers.image.description="A self-hosted services landing page, with docker and service integrations."
+LABEL org.opencontainers.image.description="${DESCRIPTION}"
 LABEL org.opencontainers.image.url="https://github.com/arpanrec/foyer"
 LABEL org.opencontainers.image.documentation='https://github.com/arpanrec/foyer/tree/dev/docs'
 LABEL org.opencontainers.image.source='https://github.com/arpanrec/foyer'
