@@ -1,0 +1,194 @@
+---
+title: Configuration
+description: Foyer Configuration
+---
+
+import { TabItem, Tabs } from "@astrojs/starlight/components";
+
+Foyer reads its configuration from one file, the config file: a [Nunjucks](https://mozilla.github.io/nunjucks/) template that renders to [JSONC](https://code.visualstudio.com/docs/languages/json#_json-with-comments), JSON that allows comments and trailing commas. Its path comes from `FOYER_CONFIG_FILE`, which defaults to `foyer.config.jsonc.njk` in the working directory; the Docker image sets it to `/app/config/foyer.config.jsonc.njk`. Without this file the dashboard shows an error in place of your services. `foyer init <dir>` writes a starter folder, see [npm installation](/installation/npm/).
+
+The config renders to one JSON object with these members:
+
+| Member       | Holds                                                        |
+| ------------ | ------------------------------------------------------------ |
+| `settings`   | [Settings](/configs/settings/)                               |
+| `services`   | [Services](/configs/services/)                               |
+| `bookmarks`  | [Bookmarks](/configs/bookmarks/)                             |
+| `widgets`    | [Information widgets](/configs/info-widgets/)                |
+| `docker`     | [Docker](/configs/docker/) servers                           |
+| `kubernetes` | [Kubernetes](/configs/kubernetes/) discovery                 |
+| `proxmox`    | [Proxmox](/configs/proxmox/) nodes                           |
+| `customCss`  | [Custom CSS](/configs/custom-css-js/), served to the browser |
+| `customJs`   | [Custom JS](/configs/custom-css-js/), served to the browser  |
+
+Every member is optional. A `$schema` key is allowed and ignored, see [Schema](#schema). Any other key, such as a misspelled `service`, fails the load with an error that names it.
+
+## One file or several
+
+The whole configuration can sit in the config file:
+
+```jsonc title="foyer.config.jsonc.njk"
+{
+    "settings": {
+        "title": "My dashboard",
+        "theme": "dark",
+    },
+    "services": [
+        {
+            "Media": [{ "Plex": { "href": "https://plex.example.com" } }],
+        },
+    ],
+    "customCss": "#information-widgets { gap: 2rem; }",
+}
+```
+
+Or it can include each member from a template of its own:
+
+<Tabs>
+<TabItem label="foyer.config.jsonc.njk">
+
+```jsonc
+{
+    "settings": {% include "./settings.jsonc.njk" %},
+    "services": {% include "./services.jsonc.njk" %},
+    "bookmarks": {% include "./bookmarks.jsonc.njk" %},
+}
+```
+
+</TabItem>
+<TabItem label="services.jsonc.njk">
+
+```jsonc
+[
+    {
+        "Media": [{ "Plex": { "href": "https://plex.example.com" } }],
+    },
+]
+```
+
+</TabItem>
+</Tabs>
+
+The other configuration pages write their examples this way, as the content of `settings.jsonc.njk`, `services.jsonc.njk` and so on. Foyer reads only the config file and what it includes, so these names are a convention: any file name works.
+
+A path in `include`, `import` or `extends` that does not start with `/` is relative to the template that names it, wherever that template sits. An absolute path can point anywhere on the server's filesystem, so a config split across folders works:
+
+```jsonc title="foyer.config.jsonc.njk"
+{
+    "settings": {% include "./settings.jsonc.njk" %},
+    "services": {% include "/srv/shared/foyer/services.jsonc.njk" %},
+}
+```
+
+A config can also extend a base template and fill in its blocks:
+
+<Tabs>
+<TabItem label="foyer.config.jsonc.njk">
+
+```jsonc
+{% extends "./base.jsonc.njk" %}
+{% block title %}Home{% endblock %}
+```
+
+</TabItem>
+<TabItem label="base.jsonc.njk">
+
+```jsonc
+{
+    "settings": { "title": "{% block title %}Foyer{% endblock %}" },
+    "services": {% include "./services.jsonc.njk" %},
+}
+```
+
+</TabItem>
+</Tabs>
+
+See the [Nunjucks templating docs](https://mozilla.github.io/nunjucks/templating.html) for loops, conditions, macros and filters.
+
+## Environment variables and secrets
+
+The template's variables are the server's environment variables whose names start with `FOYER_VAR_`, under their full name, and nothing else. Other environment variables, including Foyer's own settings such as `FOYER_AUTH_SECRET`, cannot be printed. Set `FOYER_VAR_PLEX_TOKEN` and write it inside a string:
+
+```jsonc
+"widget": {
+    "type": "plex",
+    "url": "http://plex:32400",
+    "key": "{{ FOYER_VAR_PLEX_TOKEN }}",
+},
+```
+
+A value that may hold a quote or a backslash is safer with the `dump` filter, which writes it as a complete JSON string, quotes included:
+
+```jsonc
+"password": {{ FOYER_VAR_ROUTER_PASSWORD | dump }},
+```
+
+Printing a variable that is not set fails the load with an error that gives the file, line and column. To make one optional, give it a default or test for it:
+
+```jsonc
+"title": "{{ FOYER_VAR_DASHBOARD_TITLE | default("Foyer") }}",
+{% if FOYER_VAR_PLEX_TOKEN is defined %}
+"key": "{{ FOYER_VAR_PLEX_TOKEN }}",
+{% endif %}
+```
+
+A secret kept in a file, such as a Docker secret, can be included by absolute path. Set it to a variable first, so `trim` drops the newline at the end of the file:
+
+```jsonc
+{% set sonarrKey %}{% include "/run/secrets/sonarr_key" %}{% endset %}
+"widget": {
+    "type": "sonarr",
+    "url": "http://sonarr:8989",
+    "key": {{ sonarrKey | trim | dump }},
+},
+```
+
+An included file is rendered as a template too, so a secret that contains `{{`, `{%` or `{#` needs a `{% raw %}` block around it.
+
+## Comments
+
+JSONC comments (`//` and `/* */`) stay in the rendered text and are skipped when it is parsed, but Nunjucks still renders the template tags inside them. A commented-out line that prints an unset variable therefore still fails the load. Comment such a line out with a Nunjucks comment, `{# ... #}`, which renders to nothing:
+
+```jsonc
+"settings": {
+    "title": "Home",
+    {# "providers": { "openweathermap": "{{ FOYER_VAR_OPENWEATHERMAP_API_KEY }}" }, #}
+},
+```
+
+## Loading
+
+Foyer loads the config the first time a page or API call needs it, and keeps it in memory once it loads without errors. A config that fails to load is not kept: the dashboard shows the error, and the next page load or API call loads the file again, so fixing the file is enough, without a reload or restart.
+
+The reload button in the dashboard footer loads the config again without a restart, and reads every template it includes again. When the new config loads cleanly, Foyer replaces the old one and the page reloads. When it has an error, a popup says the config is broken and shows the reason, and Foyer keeps the config it already had. When a reload, a restart or a fixed file loads a different config, other open dashboards reload themselves the next time their tab gets focus.
+
+## Schema
+
+The `@arpanrec/foyer` package ships a JSON Schema of the rendered config at `@arpanrec/foyer/schema.json`. An editor that reads JSONC can check a config against it through a `$schema` key, which Foyer ignores:
+
+```jsonc
+{
+    "$schema": "https://cdn.jsdelivr.net/npm/@arpanrec/foyer/src/foyer-config/foyer.schema.json",
+    "settings": { "title": "My dashboard" },
+}
+```
+
+The docs site serves the same schema at `https://foyer.arpanrec.com/foyer.schema.json`, the URL its `$id` names, built from the latest release of these docs. A `$schema` pointing at a versioned package URL, as `foyer init` writes, keeps checking against the Foyer version you run.
+
+Editors treat a `.njk` file as a template, not as JSONC. To get JSONC checks in VS Code, map the extension to JSONC in your settings, `"files.associations": { "*.jsonc.njk": "jsonc" }`, and expect it to flag the template tags that sit outside strings, such as `{% include %}`.
+
+## Paths
+
+Foyer opens every path in the config as written, such as the Docker TLS files. A relative path is read from the server's working directory, not from the folder holding the config file, so use absolute paths. Template paths in `include`, `import` and `extends` are the exception: they are relative to the including template, as described above. Foyer writes nothing into the folder holding the config file, so that folder can be mounted read-only.
+
+## Errors
+
+The whole config fails to load, and the dashboard shows the error, when the config file is missing, a template it includes does not exist, a printed variable is not set, the rendered text is not valid JSONC, or it is not an object with known members. A template error names the file, line and column; a JSONC error gives the line and column in the rendered text.
+
+When `customCss` or `customJs` is not a string, Foyer logs the error, leaves that member out, and shows the error on the dashboard until the file is fixed. Such a config is not kept either, so the next request loads the file again. An error in `widgets` leaves out the information widgets and appears only in the logs, so the rest of the dashboard still renders.
+
+Messages from loading the config go through Foyer's logger like every other server message: to the console output (`docker logs foyer` for a container, or the terminal that runs `pnpm start`) and to `foyer.log` in `FOYER_LOG_DIR`, as `LOG_TARGETS` and `LOG_LEVEL` set. See [Logging](/configs/environment-variables/#logging).
+
+## Security
+
+The config file and every template it includes are rendered inside the Foyer server. A template can include any file the server can read, and Nunjucks is not a sandbox, so a template can also run code on the server, which reaches every environment variable the server has. Anyone who can write to these files can reach every service credential Foyer holds, so give write access only to people you would give a shell.

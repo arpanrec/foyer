@@ -1,0 +1,2 @@
+# The sample video is binary: no diffs, no line-ending or text conversion
+video/*.avi binary

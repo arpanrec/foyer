@@ -1,0 +1,91 @@
+/*
+ * Foyer docs theme. A blurred landscape sits behind every page, and the header and sidebars float over it on
+ * translucent, blurred panels. Text is white in both colour modes; the mode changes only the panel tint, so the light
+ * theme reuses Starlight's dark palette.
+ */
+
+:root {
+    --foyer-tint: hsla(0, 0%, 0%, 0.3);
+    --foyer-blur: blur(16px);
+}
+
+:root[data-theme="light"] {
+    --foyer-tint: hsla(0, 0%, 100%, 0.1);
+
+    --sl-color-white: hsl(0, 0%, 100%);
+    --sl-color-gray-1: hsl(224, 20%, 94%);
+    --sl-color-gray-2: hsl(224, 6%, 77%);
+    --sl-color-gray-3: hsl(224, 6%, 56%);
+    --sl-color-gray-4: hsl(224, 7%, 36%);
+    --sl-color-gray-5: hsl(224, 10%, 23%);
+    --sl-color-gray-6: hsl(224, 14%, 16%);
+    --sl-color-gray-7: hsl(224, 14%, 16%);
+    --sl-color-black: hsl(224, 10%, 10%);
+
+    --sl-color-accent-low: hsl(220, 54%, 20%);
+    --sl-color-accent: hsl(220, 100%, 60%);
+    --sl-color-accent-high: hsl(220, 100%, 85%);
+
+    --sl-color-text-invert: var(--sl-color-accent-low);
+    --sl-color-bg-inline-code: hsla(0, 0%, 0%, 0.25);
+    --sl-color-bg-accent: var(--sl-color-accent-high);
+    --sl-color-hairline-light: hsla(0, 0%, 100%, 0.25);
+    --sl-color-hairline: hsla(0, 0%, 100%, 0.15);
+    --sl-color-hairline-shade: hsla(0, 0%, 0%, 0.3);
+    --sl-color-backdrop-overlay: hsla(223, 13%, 10%, 0.66);
+}
+
+:root,
+:root[data-theme="light"] {
+    --sl-color-text: hsla(0, 0%, 100%, 0.85);
+    --sl-color-text-accent: var(--sl-color-white);
+    --sl-color-bg: transparent;
+    --sl-color-bg-nav: var(--foyer-tint);
+    --sl-color-bg-sidebar: var(--foyer-tint);
+}
+
+body {
+    background:
+        linear-gradient(var(--foyer-tint), var(--foyer-tint)),
+        url("/assets/blossom_valley_blur.jpg") center / cover fixed;
+}
+
+.sl-markdown-content h1,
+.sl-markdown-content h2 {
+    color: var(--sl-color-white);
+}
+
+.sl-markdown-content a:not(.card-grid a, .sl-link-card a) {
+    font-weight: bolder;
+}
+
+.sl-markdown-content img,
+.sl-markdown-content .expressive-code {
+    box-shadow: 0 0 1rem 0.25rem hsla(0, 0%, 0%, 0.1);
+}
+
+.sl-markdown-content table {
+    display: table;
+    width: 100%;
+}
+
+/* Each aside glows in its own colour. */
+.starlight-aside {
+    background-color: hsla(0, 0%, 0%, 0.15);
+}
+
+.starlight-aside--note {
+    box-shadow: 0 0 1rem 0.25rem hsl(214deg 100% 37% / 20%);
+}
+
+.starlight-aside--tip {
+    box-shadow: 0 0 1rem 0.25rem hsl(172deg 100% 37% / 20%);
+}
+
+.starlight-aside--caution {
+    box-shadow: 0 0 1rem 0.25rem hsl(41deg 100% 37% / 20%);
+}
+
+.starlight-aside--danger {
+    box-shadow: 0 0 1rem 0.25rem hsl(0deg 100% 37% / 20%);
+}

@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Scans for secrets with Betterleaks and the rules in .betterleaks.toml.
+# Runs as the git pre-commit hook (git config --local core.hooksPath .git-hooks) and scans the staged changes, then the
+# whole git history.
+
+set -euo pipefail
+
+cd "$(git rev-parse --show-toplevel)"
+
+betterleaks git --config .betterleaks.toml --staged .
+betterleaks git --config .betterleaks.toml .

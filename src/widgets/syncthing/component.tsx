@@ -1,0 +1,52 @@
+import { useTranslation } from "next-i18next/pages";
+
+import Block from "@/components/services/widget/block";
+import Container from "@/components/services/widget/container";
+import type { WidgetProps } from "@/types/service";
+import useWidgetAPI from "@/utils/proxy/use-widget-api";
+import type { SyncthingCompletion, SyncthingConnections, SyncthingErrors } from "@/widgets/syncthing/types";
+
+export default function Component({ service }: WidgetProps) {
+    const { t } = useTranslation();
+
+    const { widget } = service;
+
+    const { data: connectionData, error: connectionError } = useWidgetAPI<SyncthingConnections>(widget, "connections");
+    const { data: completionData, error: completionError } = useWidgetAPI<SyncthingCompletion>(widget, "completion");
+    const { data: errorData, error: errorError } = useWidgetAPI<SyncthingErrors>(widget, "error");
+
+    if (connectionError || completionError || errorError) {
+        return <Container service={service} error={connectionError ?? completionError ?? errorError} />;
+    }
+
+    if (!connectionData || !completionData || !errorData) {
+        return (
+            <Container service={service}>
+                <Block label="syncthing.connected" />
+                <Block label="syncthing.synced" />
+                <Block label="syncthing.errors" />
+                <Block label="syncthing.storage" />
+            </Container>
+        );
+    }
+
+    const connections = Object.values(connectionData.connections);
+
+    return (
+        <Container service={service}>
+            <Block
+                label="syncthing.connected"
+                value={`${t("common.number", { value: connections.filter((c) => c.connected).length })} / ${t("common.number", { value: connections.length })}`}
+            />
+            <Block label="syncthing.synced" value={t("common.percent", { value: completionData.completion })} />
+            <Block
+                label="syncthing.errors"
+                value={t("common.number", { value: errorData.errors ? errorData.errors.length : 0 })}
+            />
+            <Block
+                label="syncthing.storage"
+                value={t("common.bytes", { value: completionData.globalBytes, maximumFractionDigits: 1, binary: true })}
+            />
+        </Container>
+    );
+}

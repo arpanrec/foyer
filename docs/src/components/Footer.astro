@@ -1,0 +1,20 @@
+---
+// Extends Starlight's default Footer with the Foyer application version, read from the repository root's
+// package.json (the published @arpanrec/foyer package), so the docs always show the version they document.
+import Default from "@astrojs/starlight/components/Footer.astro";
+import pkg from "../../../package.json";
+---
+
+<Default />
+<p class="foyer-version">Foyer v{pkg.version}</p>
+
+<style>
+    @layer starlight.components {
+        .foyer-version {
+            margin: -0.75rem auto 1.5rem;
+            font-size: var(--sl-text-xs);
+            color: var(--sl-color-gray-3);
+            text-align: center;
+        }
+    }
+</style>

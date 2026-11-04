@@ -1,0 +1,9 @@
+:8080 {
+	basicauth {
+		cam {$CAM_HASH}
+	}
+	reverse_proxy stream:8090 {
+		# send every frame as it arrives instead of buffering the stream
+		flush_interval -1
+	}
+}

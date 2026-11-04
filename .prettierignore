@@ -1,0 +1,12 @@
+/pnpm-lock.yaml
+/config/*
+/foyer.config.*
+/node_modules
+/docs/node_modules
+/docs/dist
+/docs/.astro
+/.next
+/dist
+/out
+/build
+next-env.d.ts

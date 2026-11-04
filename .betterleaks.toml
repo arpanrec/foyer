@@ -1,0 +1,24 @@
+# Extends the default Betterleaks rules. .git-hooks/pre-commit scans staged changes and the whole git history with this
+# file, and CI scans the whole git history with it.
+# A line that is not a secret ends with a "betterleaks:allow" comment.
+
+title = "Foyer Betterleaks config"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Placeholders in docs, tests, the MJPEG test stack and removed upstream files"
+paths = [
+    '''^docs/''',
+    '''^src/skeleton/''',
+    '''^src/__tests__/''',
+    '''.*\.test\.[jt]sx?$''',
+    '''^\.agents/''',
+    '''^test/mjpeg/''',
+]
+
+[[allowlists]]
+description = "Twitch's public web client ID"
+regexTarget = "secret"
+regexes = ['''^kimne78kx3ncx6brgo4mv6wki5h1ko$''']
