@@ -1,0 +1,57 @@
+// Kept apart from the search widget so server code can read providers without importing React components
+import type { IconType } from "react-icons";
+import { BiLogoBing } from "react-icons/bi";
+import { FiSearch } from "react-icons/fi";
+import { SiBaidu, SiBrave, SiDuckduckgo, SiGoogle } from "react-icons/si";
+
+export type SearchProvider = {
+    name: string;
+    url: string | false;
+    suggestionUrl?: string | undefined;
+    icon: IconType;
+    target?: string | undefined;
+    showSearchSuggestions?: boolean | undefined;
+};
+
+const providers = {
+    google: {
+        name: "Google",
+        url: "https://www.google.com/search?q=",
+        suggestionUrl: "https://www.google.com/complete/search?client=chrome&q=",
+        icon: SiGoogle,
+    },
+    duckduckgo: {
+        name: "DuckDuckGo",
+        url: "https://duckduckgo.com/?q=",
+        suggestionUrl: "https://duckduckgo.com/ac/?type=list&q=",
+        icon: SiDuckduckgo,
+    },
+    bing: {
+        name: "Bing",
+        url: "https://www.bing.com/search?q=",
+        suggestionUrl: "https://api.bing.com/osjson.aspx?query=",
+        icon: BiLogoBing,
+    },
+    baidu: {
+        name: "Baidu",
+        url: "https://www.baidu.com/s?wd=",
+        suggestionUrl: "http://suggestion.baidu.com/su?&action=opensearch&ie=utf-8&wd=",
+        icon: SiBaidu,
+    },
+    brave: {
+        name: "Brave",
+        url: "https://search.brave.com/search?q=",
+        suggestionUrl: "https://search.brave.com/api/suggest?&rich=false&q=",
+        icon: SiBrave,
+    },
+    custom: {
+        name: "Custom",
+        url: false,
+        icon: FiSearch,
+    },
+} satisfies Record<string, SearchProvider>;
+
+// Looked up by the provider name from the settings, which may name none of these
+export const searchProviders: Record<string, SearchProvider> = providers;
+
+export const defaultSearchProvider: SearchProvider = providers.google;

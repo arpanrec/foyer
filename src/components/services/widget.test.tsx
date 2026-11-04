@@ -1,0 +1,41 @@
+// @vitest-environment jsdom
+
+import { render, screen } from "@testing-library/react";
+import type { ReactNode } from "react";
+import { describe, expect, it, vi } from "vitest";
+
+import type { WidgetProps } from "@/types/service";
+
+vi.mock("@/components/errorboundry", () => ({
+    default: function ErrorBoundaryMock({ children }: { children: ReactNode }) {
+        return <>{children}</>;
+    },
+}));
+
+vi.mock("@/widgets/components", () => ({
+    default: {
+        mock: function MockWidget({ service }: WidgetProps) {
+            return (
+                <div data-testid="mock-service-widget">
+                    {service.name}:{service.widget?.type}
+                </div>
+            );
+        },
+    },
+}));
+
+import Widget from "@/components/services/widget";
+
+describe("components/services/widget", () => {
+    it("renders the mapped widget component and passes merged service.widget", () => {
+        render(<Widget widget={{ type: "mock" }} service={{ name: "Svc" }} />);
+
+        expect(screen.getByTestId("mock-service-widget")).toHaveTextContent("Svc:mock");
+    });
+
+    it("renders a missing widget message when the type is unknown", () => {
+        render(<Widget widget={{ type: "nope" }} service={{ name: "Svc" }} />);
+
+        expect(screen.getByText("widget.missing_type")).toBeInTheDocument();
+    });
+});

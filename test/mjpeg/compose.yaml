@@ -1,0 +1,23 @@
+services:
+    stream:
+        build: ./stream
+        environment:
+            VIDEO: /video/file_example_AVI_1920_2_3MG.avi
+        volumes:
+            - ./video:/video:ro
+
+    caddy:
+        image: docker.io/library/caddy:2
+        depends_on:
+            - stream
+        environment:
+            CAM_PASS: ${CAM_PASS:-secret}
+        # Caddy only takes a hashed password, so hash it on start
+        command:
+            - sh
+            - -c
+            - CAM_HASH=$$(caddy hash-password --plaintext "$$CAM_PASS") caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
+        volumes:
+            - ./Caddyfile:/etc/caddy/Caddyfile:ro
+        ports:
+            - "127.0.0.1:8091:8080"

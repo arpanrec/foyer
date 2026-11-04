@@ -1,0 +1,12 @@
+---
+packages:
+    - docs
+# Run package.json scripts through pnpm's own shell, so the inline VAR=value prefixes also work on Windows
+shellEmulator: true
+allowBuilds:
+    cpu-features: false
+    protobufjs: false
+    ssh2: false
+minimumReleaseAgeExclude:
+    - i18next@26.6.0
+    - react-i18next@17.1.10

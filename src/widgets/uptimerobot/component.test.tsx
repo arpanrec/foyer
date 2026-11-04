@@ -1,0 +1,60 @@
+// @vitest-environment jsdom
+
+import { screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import { renderWithProviders } from "@/test-utils/render-with-providers";
+import { expectBlockValue } from "@/test-utils/widget-assertions";
+import Component from "@/widgets/uptimerobot/component";
+
+describe("widgets/uptimerobot/component", () => {
+    const originalFetch = globalThis.fetch;
+
+    beforeEach(() => {
+        vi.restoreAllMocks();
+    });
+
+    afterEach(() => {
+        globalThis.fetch = originalFetch;
+    });
+
+    it("renders placeholders initially and then renders multi-monitor counts", async () => {
+        vi.stubGlobal(
+            "fetch",
+            vi.fn(async () => ({
+                json: async () => ({
+                    pagination: { total: 3 },
+                    monitors: [{ status: 2 }, { status: 9 }, { status: 2 }],
+                }),
+            }))
+        );
+
+        const { container } = renderWithProviders(<Component service={{ widget: { type: "uptimerobot" } }} />, {
+            settings: { hideErrors: false },
+        });
+
+        expect(screen.getByText("uptimerobot.status")).toBeInTheDocument();
+        expect(screen.getByText("uptimerobot.uptime")).toBeInTheDocument();
+
+        await waitFor(() => {
+            expectBlockValue(container, "uptimerobot.sitesUp", 2);
+            expectBlockValue(container, "uptimerobot.sitesDown", 1);
+        });
+    });
+
+    it("keeps the placeholders when the account has no monitors", async () => {
+        const fetchMock = vi.fn(async () => ({
+            json: async () => ({ pagination: { total: 0 }, monitors: [] }),
+        }));
+        vi.stubGlobal("fetch", fetchMock);
+
+        renderWithProviders(<Component service={{ widget: { type: "uptimerobot" } }} />, {
+            settings: { hideErrors: false },
+        });
+
+        await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+        await waitFor(() => expect(screen.getByText("uptimerobot.status")).toBeInTheDocument());
+        expect(screen.getByText("uptimerobot.uptime")).toBeInTheDocument();
+        expect(screen.queryByText("uptimerobot.sitesUp")).toBeNull();
+    });
+});

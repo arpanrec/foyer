@@ -1,0 +1,264 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://foyer.arpanrec.com/foyer.schema.json",
+    "title": "Foyer config",
+    "description": "The JSON object a Foyer config template renders to. Every member is optional.",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+        "$schema": { "type": "string", "description": "The schema editors validate this file with; Foyer ignores it" },
+        "settings": { "$ref": "#/$defs/settings" },
+        "services": { "$ref": "#/$defs/services" },
+        "bookmarks": { "$ref": "#/$defs/bookmarks" },
+        "widgets": { "$ref": "#/$defs/infoWidgets" },
+        "docker": { "$ref": "#/$defs/docker" },
+        "kubernetes": { "$ref": "#/$defs/kubernetes" },
+        "proxmox": { "$ref": "#/$defs/proxmox" },
+        "customCss": { "type": "string", "description": "The stylesheet the dashboard loads" },
+        "customJs": { "type": "string", "description": "The script the dashboard loads" }
+    },
+    "$defs": {
+        "serviceWidget": {
+            "description": "A service widget. Every widget type adds its own options, see https://foyer.arpanrec.com/widgets/",
+            "type": "object",
+            "required": ["type"],
+            "properties": {
+                "type": { "type": "string" },
+                "url": { "type": "string" },
+                "fields": { "type": "array", "items": { "type": "string" } },
+                "highlight": {},
+                "hideErrors": { "type": "boolean" },
+                "key": { "type": "string" },
+                "username": { "type": "string" },
+                "password": { "type": "string" },
+                "headers": { "type": "object", "additionalProperties": { "type": "string" } },
+                "method": { "type": "string" },
+                "requestBody": {},
+                "refreshInterval": { "type": "number" }
+            }
+        },
+        "service": {
+            "type": "object",
+            "properties": {
+                "href": { "type": "string" },
+                "description": { "type": "string" },
+                "icon": { "type": "string" },
+                "weight": { "type": "number" },
+                "target": { "type": "string" },
+                "server": { "type": "string" },
+                "container": { "type": "string" },
+                "namespace": { "type": "string" },
+                "app": { "type": "string" },
+                "podSelector": { "type": "string" },
+                "ping": { "type": "string" },
+                "siteMonitor": { "type": "string" },
+                "statusStyle": { "type": "string" },
+                "showStats": { "type": "boolean" },
+                "proxmoxNode": { "type": "string" },
+                "proxmoxVMID": { "type": ["string", "number"] },
+                "proxmoxType": { "enum": ["qemu", "lxc"] },
+                "widget": { "$ref": "#/$defs/serviceWidget" },
+                "widgets": { "type": "array", "items": { "$ref": "#/$defs/serviceWidget" } }
+            }
+        },
+        "serviceEntry": {
+            "description": "A service by name, or a nested group by name holding its own entries",
+            "type": "object",
+            "minProperties": 1,
+            "maxProperties": 1,
+            "additionalProperties": {
+                "anyOf": [
+                    { "$ref": "#/$defs/service" },
+                    { "type": "array", "items": { "$ref": "#/$defs/serviceEntry" } }
+                ]
+            }
+        },
+        "services": {
+            "description": "A list of groups, each a single-key object holding its entries",
+            "type": "array",
+            "items": {
+                "type": "object",
+                "minProperties": 1,
+                "maxProperties": 1,
+                "additionalProperties": { "type": "array", "items": { "$ref": "#/$defs/serviceEntry" } }
+            }
+        },
+        "bookmark": {
+            "type": "object",
+            "required": ["href"],
+            "properties": {
+                "href": { "type": "string" },
+                "abbr": { "type": "string" },
+                "icon": { "type": "string" },
+                "description": { "type": "string" },
+                "target": { "type": "string" }
+            }
+        },
+        "bookmarks": {
+            "description": "A list of groups, each holding single-key bookmarks whose value is a one-item list",
+            "type": "array",
+            "items": {
+                "type": "object",
+                "minProperties": 1,
+                "maxProperties": 1,
+                "additionalProperties": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "minProperties": 1,
+                        "maxProperties": 1,
+                        "additionalProperties": { "type": "array", "items": { "$ref": "#/$defs/bookmark" } }
+                    }
+                }
+            }
+        },
+        "infoWidgets": {
+            "description": "A list of information widgets, each a single-key object named after the widget type",
+            "type": "array",
+            "items": {
+                "type": "object",
+                "minProperties": 1,
+                "maxProperties": 1,
+                "additionalProperties": { "type": ["object", "null"] }
+            }
+        },
+        "groupLayout": {
+            "description": "A group's layout; a services group also holds the layouts of its subgroups, by name",
+            "type": ["object", "null"],
+            "properties": {
+                "style": { "enum": ["row", "column"] },
+                "columns": { "type": "number" },
+                "header": { "type": "boolean" },
+                "initiallyCollapsed": { "type": "boolean" },
+                "icon": { "type": "string" },
+                "tab": { "type": "string" },
+                "iconsOnly": { "type": "boolean" },
+                "useEqualHeights": { "type": "boolean" }
+            }
+        },
+        "settings": {
+            "description": "Only these keys are settings, so a misspelled or unknown one is flagged",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "title": { "type": "string" },
+                "description": { "type": "string" },
+                "base": { "type": "string" },
+                "theme": { "enum": ["dark", "light"] },
+                "color": { "type": "string" },
+                "language": { "type": "string" },
+                "favicon": { "type": "string" },
+                "font": { "enum": ["plex", "plexData"] },
+                "background": {
+                    "anyOf": [
+                        { "type": "string" },
+                        {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                                "image": { "type": "string" },
+                                "blur": { "type": "string" },
+                                "saturate": { "type": ["string", "number"] },
+                                "brightness": { "type": ["string", "number"] },
+                                "opacity": { "type": "number" }
+                            }
+                        }
+                    ]
+                },
+                "backgroundOpacity": { "type": "number" },
+                "cardBlur": { "type": "string" },
+                "cardStyle": { "type": "string" },
+                "blockStyle": { "type": "string" },
+                "blockHighlights": {},
+                "bookmarksStyle": { "type": "string" },
+                "headerStyle": { "type": "string" },
+                "iconStyle": { "type": "string" },
+                "statusStyle": { "type": "string" },
+                "layout": {
+                    "anyOf": [
+                        { "type": "object", "additionalProperties": { "$ref": "#/$defs/groupLayout" } },
+                        {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "minProperties": 1,
+                                "maxProperties": 1,
+                                "additionalProperties": { "$ref": "#/$defs/groupLayout" }
+                            }
+                        }
+                    ]
+                },
+                "providers": { "type": "object" },
+                "quicklaunch": { "type": "object" },
+                "target": { "type": "string" },
+                "startUrl": { "type": "string" },
+                "instanceName": { "type": "string" },
+                "hideErrors": { "type": "boolean" },
+                "hideVersion": { "type": "boolean" },
+                "disableCollapse": { "type": "boolean" },
+                "disableIndexing": { "type": "boolean" },
+                "fiveColumns": { "type": "boolean" },
+                "fullWidth": { "type": "boolean" },
+                "groupsInitiallyCollapsed": { "type": "boolean" },
+                "useEqualHeights": { "type": "boolean" },
+                "showStats": { "type": "boolean" },
+                "maxBookmarkGroupColumns": { "type": "number" },
+                "maxGroupColumns": { "type": "number" },
+                "pwa": { "type": "object" }
+            }
+        },
+        "dockerServer": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "socket": { "type": "string" },
+                "host": { "type": "string" },
+                "port": { "type": "number" },
+                "swarm": { "type": "boolean" },
+                "protocol": { "enum": ["https", "http", "ssh"] },
+                "headers": { "type": "object", "additionalProperties": { "type": "string" } },
+                "tls": {
+                    "description": "Opened as written, so a relative path is read from the working directory; use absolute paths",
+                    "type": "object",
+                    "required": ["caFile", "certFile", "keyFile"],
+                    "properties": {
+                        "caFile": { "type": "string" },
+                        "certFile": { "type": "string" },
+                        "keyFile": { "type": "string" }
+                    }
+                }
+            }
+        },
+        "docker": {
+            "description": "One entry per server name",
+            "type": "object",
+            "additionalProperties": { "$ref": "#/$defs/dockerServer" }
+        },
+        "kubernetes": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "mode": { "enum": ["cluster", "default", "disabled"] },
+                "ingress": { "type": "boolean" },
+                "traefik": { "type": "boolean" },
+                "gateway": { "type": "boolean" }
+            }
+        },
+        "proxmoxNode": {
+            "type": "object",
+            "required": ["url", "token", "secret"],
+            "properties": {
+                "url": { "type": "string" },
+                "token": { "type": "string" },
+                "secret": { "type": "string" }
+            }
+        },
+        "proxmox": {
+            "description": "One entry per node name, or a single node's url, token and secret for every node",
+            "anyOf": [
+                { "$ref": "#/$defs/proxmoxNode" },
+                { "type": "object", "additionalProperties": { "$ref": "#/$defs/proxmoxNode" } }
+            ]
+        }
+    }
+}

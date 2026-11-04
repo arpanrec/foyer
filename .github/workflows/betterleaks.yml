@@ -1,0 +1,49 @@
+---
+name: Betterleaks
+
+on:
+    push:
+    pull_request:
+    merge_group:
+    workflow_dispatch:
+    schedule:
+        - cron: "0 4 * * *" # run once a day at 4 AM
+
+permissions:
+    contents: read
+
+env:
+    BETTERLEAKS_VERSION: 1.9.0
+    BETTERLEAKS_SHA256: f8b185a39ffcece2a1ca82bf3a4e7435cd81963ffd16b7a9128daf75f35f6de7
+
+jobs:
+    betterleaks:
+        name: betterleaks
+        if: github.server_url == 'https://github.com' && github.repository == 'arpanrec/foyer'
+        runs-on: ubuntu-26.04
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  fetch-depth: 0
+
+            - name: Install Betterleaks
+              run: |
+                  archive="betterleaks_${BETTERLEAKS_VERSION}_linux_x64.tar.gz"
+                  curl -fsSL -o "$RUNNER_TEMP/$archive" \
+                      "https://github.com/betterleaks/betterleaks/releases/download/v${BETTERLEAKS_VERSION}/$archive"
+                  echo "$BETTERLEAKS_SHA256  $RUNNER_TEMP/$archive" | sha256sum --check --strict
+                  mkdir -p "$RUNNER_TEMP/betterleaks"
+                  tar -xzf "$RUNNER_TEMP/$archive" -C "$RUNNER_TEMP/betterleaks" betterleaks
+                  echo "$RUNNER_TEMP/betterleaks" >> "$GITHUB_PATH"
+
+            - name: Run Betterleaks
+              run: >-
+                  betterleaks git --config .betterleaks.toml
+                  --report-format json --report-path betterleaks-secrets.json .
+
+            - name: Archive Betterleaks Report
+              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+              if: always()
+              with:
+                  name: betterleaks-secrets
+                  path: betterleaks-secrets.json

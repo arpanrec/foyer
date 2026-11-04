@@ -1,0 +1,73 @@
+---
+name: NPM CI
+
+on:
+    push:
+        tags:
+            - "*"
+
+permissions: {}
+
+jobs:
+    publish:
+        name: NPM Build & Publish
+        if: github.server_url == 'https://github.com' && github.repository == 'arpanrec/foyer'
+        runs-on: ubuntu-26.04
+        permissions:
+            contents: read
+            packages: write
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  fetch-depth: 0
+
+            # Tags aren't restricted to a branch, so a tag pushed on anything but main would otherwise still
+            # publish. git branch -r --contains lists every remote branch the tagged commit is an ancestor of;
+            # main must be among them.
+            - name: Verify the tag is on main
+              run: |
+                  git fetch origin main
+                  [[ -n "$(git branch -r --contains "${{ github.sha }}" --list 'origin/main')" ]] || {
+                      echo "::error::${{ github.ref_name }} is not on main"
+                      exit 1
+                  }
+
+            - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+              with:
+                  version: 12
+                  run_install: false
+
+            - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+              with:
+                  node-version: 26
+                  cache: pnpm
+                  registry-url: https://npm.pkg.github.com
+                  scope: "@arpanrec"
+
+            - run: pnpm install --frozen-lockfile
+
+            # `pnpm publish` runs prepack, which runs `next build`.
+            - name: Next.js build cache
+              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+              with:
+                  path: .next/cache
+                  key: nextjs-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('**/*.ts', '**/*.tsx', '**/*.js', '**/*.jsx', '!node_modules/**') }}
+                  restore-keys: |
+                      nextjs-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-
+
+            # The tag publishes its own version under `latest` (`next` for a prerelease tag).
+            - name: Set version and dist-tag
+              id: release
+              env:
+                  REF_NAME: ${{ github.ref_name }}
+              run: |
+                  version="${REF_NAME#v}"
+                  if [[ "$version" == *-* ]]; then dist_tag=next; else dist_tag=latest; fi
+                  pnpm pkg set version="$version"
+                  echo "dist_tag=$dist_tag" >> "$GITHUB_OUTPUT"
+                  echo "Publishing $version with tag $dist_tag"
+
+            - name: Publish to the GitHub npm registry
+              env:
+                  NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: pnpm publish --tag "${{ steps.release.outputs.dist_tag }}" --no-git-checks
