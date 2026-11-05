@@ -6,7 +6,7 @@ export function isAuthEnabled() {
     return getEnv("AUTH_ENABLED") === "true";
 }
 
-// FOYER_DATA_DIR, or /tmp/foyer when unset. Logs, the cache database and other on-disk state live under it.
+// FOYER_DATA_DIR, or /tmp/foyer when unset. Logs, the disk cache and other on-disk state live under it.
 export function dataDir(): string {
     return getEnv("DATA_DIR") || "/tmp/foyer";
 }

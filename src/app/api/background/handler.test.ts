@@ -25,7 +25,7 @@ describe("app/api/background/handler", () => {
         const res = createMockRes();
         await handler({ query: {} }, res as ApiResponse);
 
-        expect(getRemoteImage).toHaveBeenCalledWith("https://example.com/bg.jpg");
+        expect(getRemoteImage).toHaveBeenCalledWith("https://example.com/bg.jpg", undefined, false, false);
         expect(res.headers["Content-Type"]).toBe("image/jpeg");
         expect(res.body).toEqual(body);
     });
@@ -36,7 +36,7 @@ describe("app/api/background/handler", () => {
 
         await handler({ query: {} }, createMockRes() as ApiResponse);
 
-        expect(getRemoteImage).toHaveBeenCalledWith("https://cdn.example.com/bg.jpg");
+        expect(getRemoteImage).toHaveBeenCalledWith("https://cdn.example.com/bg.jpg", undefined, false, false);
     });
 
     it("serves the image of a background object and ignores any request URL", async () => {
@@ -46,7 +46,16 @@ describe("app/api/background/handler", () => {
         const res = createMockRes();
         await handler({ query: { url: "http://evil.example/x" } }, res as ApiResponse);
 
-        expect(getRemoteImage).toHaveBeenCalledWith("http://nas.lan/bg.png");
+        expect(getRemoteImage).toHaveBeenCalledWith("http://nas.lan/bg.png", undefined, false, false);
+    });
+
+    it("downloads the background again for a request with Cache-Control: no-cache", async () => {
+        getSettings.mockReturnValue({ background: "https://example.com/bg.jpg" });
+        getRemoteImage.mockResolvedValue({ body: Buffer.from([1]), contentType: "image/jpeg" });
+
+        await handler({ query: {}, headers: { "cache-control": "no-cache" } }, createMockRes() as ApiResponse);
+
+        expect(getRemoteImage).toHaveBeenCalledWith("https://example.com/bg.jpg", undefined, false, true);
     });
 
     it("answers 404 for a relative or missing background", async () => {

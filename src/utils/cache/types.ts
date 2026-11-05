@@ -56,6 +56,25 @@ export interface CacheEntryInfo {
     value: unknown;
 }
 
+// What Keyv hands the record layer for a key. `expires` is undefined for a record that never expires.
+export type StoredRecord = { value: unknown; expires?: number | undefined };
+
+// One live record as the record layer lists it, with the bytes it takes on disk or once serialized
+export type StoredListing = { key: string; data: StoredRecord; bytes: number };
+
+// The layer under the cache store's memory layer that keeps every record and lists them: one file per entry
+// (FileStore in disk.ts) or a map (MemoryStore in memory.ts). It is a Keyv storage adapter, so Keyv calls get, set,
+// has, delete and clear; the store calls list and prune.
+export interface RecordStore {
+    get(key: string): Promise<StoredRecord | undefined>;
+    set(key: string, data: StoredRecord): Promise<boolean>;
+    has(key: string): Promise<boolean>;
+    delete(key: string): Promise<boolean>;
+    clear(): Promise<void>;
+    list(): Promise<StoredListing[]>;
+    prune(): Promise<void>;
+}
+
 // What the cache backend (disk.ts) offers. Every call returns a promise.
 export interface CacheStore {
     // The cached value, or what `load` returns, stored for next time. A loader that returns undefined stores nothing,

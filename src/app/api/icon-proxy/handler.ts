@@ -1,6 +1,7 @@
 import { firstQueryValue } from "@/app/api/query";
 import type { ApiRequest, ApiResponse } from "@/types/api";
 import { withAuth } from "@/utils/auth";
+import { requestsNoCache } from "@/utils/cache-control";
 import { sendIcon } from "@/utils/icon-response";
 import { DEFAULT_MAX_AGE_SECONDS, getRemoteImage } from "@/utils/icons";
 import { isImageUrlAllowed, isPublicOnlyImageUrl } from "@/utils/image-allowlist";
@@ -29,7 +30,7 @@ async function handler(req: ApiRequest, res: ApiResponse) {
             ? Math.floor(Math.min(requested, DEFAULT_MAX_AGE_SECONDS))
             : undefined;
 
-    const image = await getRemoteImage(url, maxAge, await isPublicOnlyImageUrl(url));
+    const image = await getRemoteImage(url, maxAge, await isPublicOnlyImageUrl(url), requestsNoCache(req.headers));
     if (!image) return res.status(404).send({ error: "Image not found" });
 
     return sendIcon(res, image, maxAge);

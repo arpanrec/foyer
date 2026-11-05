@@ -54,7 +54,7 @@ process.env["FOYER_ALLOWED_HOSTS"] = "*";
 // The logger writes no file, so tests leave nothing in the log folder
 process.env["LOG_TARGETS"] = "stdout";
 
-// A test file that does not set its own FOYER_DATA_DIR gets a private one, so its disk cache never collides with
+// A test file that does not set its own FOYER_DATA_DIR gets a private one, so a disk cache it turns on never collides with
 // another test file running at the same time, and nothing is left behind in the real /tmp/foyer.
 if (!process.env["FOYER_DATA_DIR"]) {
     const testDataDir = mkdtempSync(join(tmpdir(), "foyer-test-"));
