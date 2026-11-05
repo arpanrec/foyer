@@ -1,3 +1,4 @@
+import { PHASE_PRODUCTION_BUILD } from "next/constants";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { LoadedConfig } from "@/utils/config/core";
@@ -134,7 +135,7 @@ describe("utils/config/store", () => {
     });
 
     it("loads nothing while next build prerenders pages", async () => {
-        process.env["NEXT_PHASE"] = "phase-production-build";
+        process.env["NEXT_PHASE"] = PHASE_PRODUCTION_BUILD;
 
         expect(await getConfig("settings")).toBeUndefined();
         expect(await getConfigErrors()).toEqual([]);

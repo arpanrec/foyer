@@ -437,14 +437,19 @@ describe("utils/proxy/http httpProxy", () => {
         state.response.headers["content-encoding"] = "gzip";
         state.response.body = Buffer.from("hello");
 
-        await httpMod.httpProxy("http://user:pass@example.com:8080/api/v2?apikey=secret&cmd=get#frag");
+        const url = "http://user:pass@example.com:8080/api/v2?apikey=secret&cmd=get#frag";
+        await httpMod.httpProxy(url);
 
         expect(logger.error).toHaveBeenCalledWith(
             "Error decompressing the response from %s: %s",
-            "http://example.com:8080/api/v2",
+            "example.com:8080",
             "bad gzip"
         );
-        expect(JSON.stringify(vi.mocked(logger.error).mock.calls)).not.toMatch(/secret|pass/);
+        expect(logger.debug).toHaveBeenCalledWith(
+            "Error decompressing the response from %s: %s",
+            new URL(url),
+            "bad gzip"
+        );
 
         vi.doUnmock("node:zlib");
     });
@@ -515,6 +520,17 @@ describe("utils/proxy/http httpProxy", () => {
         expect(contentType).toBe("application/json");
         expect(errorData.error.message).toBe("boom");
         expect(errorData.error.url).toBe("example.com (see logs for details)");
+    });
+
+    it("logs a failure that is not an Error as text, with the host only", async () => {
+        // a request can fail with a value that has no message, such as a bare string
+        state.error = "socket hang up" as unknown as Error;
+        const httpMod = await import("@/utils/proxy/http");
+
+        const [status] = await httpMod.httpProxy("http://example.com/?apikey=secret");
+
+        expect(status).toBe(500);
+        expect(logger.error).toHaveBeenCalledWith("Error calling %s: %s", "example.com", "socket hang up");
     });
 });
 

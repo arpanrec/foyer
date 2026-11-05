@@ -1,6 +1,3 @@
-import { tmpdir } from "node:os";
-import path from "node:path";
-
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 type TransportOptions = {
@@ -139,15 +136,15 @@ describe("utils/logger", () => {
     it("selects stdout/file/both transports based on LOG_TARGETS", async () => {
         vi.resetModules();
         process.env["LOG_TARGETS"] = "file";
-        process.env["FOYER_LOG_DIR"] = "/var/log/foyer";
+        process.env["FOYER_DATA_DIR"] = "/var/log/foyer";
 
         const createLogger = (await import("@/utils/logger")).default;
         createLogger("x");
 
         const transports = state.lastCreateLoggerArgs!.transports;
-        expect(mkdirSync).toHaveBeenCalledWith("/var/log/foyer", { recursive: true });
+        expect(mkdirSync).toHaveBeenCalledWith("/var/log/foyer/logs", { recursive: true });
         expect(transports).toHaveLength(1);
-        expect(transports[0]!.opts.filename).toBe("/var/log/foyer/foyer.log");
+        expect(transports[0]!.opts.filename).toBe("/var/log/foyer/logs/foyer.log");
         expect(transports[0]!.opts.maxsize).toBe(10 * 1024 * 1024);
         expect(transports[0]!.opts.maxFiles).toBe(5);
         expect(transports[0]!.opts.tailable).toBe(true);
@@ -220,23 +217,23 @@ describe("utils/logger", () => {
         expect(instance.error).toHaveBeenCalledWith("", "boom");
     });
 
-    it("writes to foyer/logs in the system temp folder unless FOYER_LOG_DIR is set", async () => {
+    it("writes to /tmp/foyer/logs unless FOYER_DATA_DIR is set", async () => {
         vi.resetModules();
         process.env["LOG_TARGETS"] = "file";
-        delete process.env["FOYER_LOG_DIR"];
+        delete process.env["FOYER_DATA_DIR"];
 
         const { default: createLogger, logDir } = await import("@/utils/logger");
         createLogger("x");
 
-        expect(logDir()).toBe(path.join(tmpdir(), "foyer", "logs"));
+        expect(logDir()).toBe("/tmp/foyer/logs");
         const transports = state.lastCreateLoggerArgs!.transports;
-        expect(transports[0]!.opts.filename).toBe(path.join(tmpdir(), "foyer", "logs", "foyer.log"));
+        expect(transports[0]!.opts.filename).toBe("/tmp/foyer/logs/foyer.log");
     });
 
     it("logs to the console only, with a warning, when the log folder cannot be created", async () => {
         vi.resetModules();
         process.env["LOG_TARGETS"] = "file";
-        process.env["FOYER_LOG_DIR"] = "/read-only/logs";
+        process.env["FOYER_DATA_DIR"] = "/read-only";
         mkdirSync.mockImplementationOnce(() => {
             throw new Error("EACCES: permission denied");
         });
@@ -259,7 +256,7 @@ describe("utils/logger", () => {
     it("logs to the console only when the log folder exists but cannot be written", async () => {
         vi.resetModules();
         process.env["LOG_TARGETS"] = "file";
-        process.env["FOYER_LOG_DIR"] = "/tmp/foyer/logs";
+        process.env["FOYER_DATA_DIR"] = "/tmp/foyer";
         accessSync.mockImplementationOnce(() => {
             throw new Error("EACCES: permission denied");
         });
@@ -283,7 +280,7 @@ describe("utils/logger", () => {
     it("logs to the console only when foyer.log exists but cannot be written", async () => {
         vi.resetModules();
         process.env["LOG_TARGETS"] = "file";
-        process.env["FOYER_LOG_DIR"] = "/app/logs";
+        process.env["FOYER_DATA_DIR"] = "/app";
         statSync.mockReturnValueOnce({ isDirectory: () => false });
         accessSync.mockImplementation((file: string) => {
             if (file === "/app/logs/foyer.log") throw new Error("EACCES: permission denied");
@@ -307,7 +304,7 @@ describe("utils/logger", () => {
     it("writes to an existing foyer.log that is not a folder, such as a named pipe", async () => {
         vi.resetModules();
         process.env["LOG_TARGETS"] = "file";
-        process.env["FOYER_LOG_DIR"] = "/app/logs";
+        process.env["FOYER_DATA_DIR"] = "/app";
         // a FIFO or a link to /dev/stderr is neither a regular file nor a folder
         statSync.mockReturnValueOnce({ isDirectory: () => false });
 
@@ -324,7 +321,7 @@ describe("utils/logger", () => {
     it("logs to the console only when foyer.log is a folder", async () => {
         vi.resetModules();
         process.env["LOG_TARGETS"] = "file";
-        process.env["FOYER_LOG_DIR"] = "/app/logs";
+        process.env["FOYER_DATA_DIR"] = "/app";
         statSync.mockReturnValueOnce({ isDirectory: () => true });
 
         const createLogger = (await import("@/utils/logger")).default;
@@ -342,7 +339,7 @@ describe("utils/logger", () => {
     it("logs to the console only when foyer.log cannot be checked", async () => {
         vi.resetModules();
         process.env["LOG_TARGETS"] = "file";
-        process.env["FOYER_LOG_DIR"] = "/app/logs";
+        process.env["FOYER_DATA_DIR"] = "/app";
         statSync.mockImplementationOnce(() => {
             throw new Error("EIO: i/o error");
         });
@@ -362,7 +359,7 @@ describe("utils/logger", () => {
     it("falls back to the console when the log file fails after start", async () => {
         vi.resetModules();
         process.env["LOG_TARGETS"] = "file";
-        process.env["FOYER_LOG_DIR"] = "/var/log/foyer";
+        process.env["FOYER_DATA_DIR"] = "/var/log/foyer";
 
         const createLogger = (await import("@/utils/logger")).default;
         createLogger("x");
@@ -383,7 +380,7 @@ describe("utils/logger", () => {
         expect(base.warn).toHaveBeenCalledWith(
             "Cannot write %s to %s, logging to the console only: %s",
             "foyer.log",
-            "/var/log/foyer",
+            "/var/log/foyer/logs",
             "EACCES: permission denied"
         );
     });
@@ -391,7 +388,7 @@ describe("utils/logger", () => {
     it("shares one winston logger between copies of the module", async () => {
         vi.resetModules();
         process.env["LOG_TARGETS"] = "file";
-        process.env["FOYER_LOG_DIR"] = "/var/log/foyer";
+        process.env["FOYER_DATA_DIR"] = "/var/log/foyer";
 
         const first = (await import("@/utils/logger")).default("x");
         vi.resetModules();

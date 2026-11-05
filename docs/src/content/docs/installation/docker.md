@@ -3,7 +3,7 @@ title: Docker Installation
 description: Install and run foyer from Docker
 ---
 
-The container reads its config from `/app/config/foyer.config.jsonc.njk`. Create that file in the folder you mount at `/app/config` first; until it exists, the dashboard shows an error in place of your services. See [Configuration](/configs/). The log file goes to `/tmp/foyer/logs` inside the container unless you set `FOYER_LOG_DIR`, see [Logging](/configs/environment-variables/#logging).
+The container reads its config from `/app/config/foyer.config.jsonc.njk`. Create that file in the folder you mount at `/app/config` first; until it exists, the dashboard shows an error in place of your services. See [Configuration](/configs/). The log file goes to `/tmp/foyer/logs` inside the container unless you set `FOYER_DATA_DIR`, see [Logging](/configs/environment-variables/#logging).
 
 Using docker compose:
 

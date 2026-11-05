@@ -64,6 +64,7 @@ export default defineConfig({
                         "configs/proxmox",
                         "configs/mcp",
                         "configs/custom-css-js",
+                        "configs/large-config",
                     ],
                 },
                 {

@@ -11,13 +11,13 @@ const { logger } = vi.hoisted(() => ({
 
 vi.mock("@/utils/logger", () => ({ default: () => logger }));
 
-import { DiskCacheStore, FileStore } from "@/utils/cache/disk";
+import { DiskCacheStore, FileStore, isDiskCacheEnabled } from "@/utils/cache/disk";
 import { resetWarnOnce } from "@/utils/warn-once";
 
 let dir: string;
 
 // a cache after a restart: a new object over the same folder
-const open = () => new DiskCacheStore(dir);
+const open = () => new DiskCacheStore(dir, true);
 const files = async () => (await readdir(dir)).filter((name) => name.endsWith(".v8"));
 
 beforeEach(async () => {
@@ -28,6 +28,7 @@ beforeEach(async () => {
 
 afterEach(async () => {
     vi.useRealTimers();
+    vi.unstubAllEnvs();
     await rm(dir, { recursive: true, force: true });
 });
 
@@ -264,12 +265,126 @@ describe("utils/cache/disk", () => {
     it("keeps entries in memory only, with one warning, when the folder cannot be created", async () => {
         const blocker = join(dir, "file");
         await writeFile(blocker, "x");
-        const cache = new DiskCacheStore(join(blocker, "sub"));
+        const cache = new DiskCacheStore(join(blocker, "sub"), true);
 
         expect(await cache.getOrFetch("k", async () => 1)).toBe(1);
         // the memory layer of cacheable still holds it
         expect(await cache.getOrFetch("k", async () => 2)).toBe(1);
         expect(await cache.entries()).toEqual([]);
         expect(logger.warn).toHaveBeenCalledTimes(1);
+    });
+});
+
+describe("utils/cache/disk FOYER_DISK_CACHE", () => {
+    it("is off when unset, empty or false, and on only for true", () => {
+        for (const value of [undefined, "", "false"]) {
+            vi.stubEnv("FOYER_DISK_CACHE", value);
+            expect(isDiskCacheEnabled()).toBe(false);
+        }
+        vi.stubEnv("FOYER_DISK_CACHE", "true");
+        expect(isDiskCacheEnabled()).toBe(true);
+        expect(logger.warn).not.toHaveBeenCalled();
+    });
+
+    it("keeps the cache in memory, with a warning that names the value, for anything else", () => {
+        vi.stubEnv("FOYER_DISK_CACHE", "yes");
+
+        expect(isDiskCacheEnabled()).toBe(false);
+        expect(logger.warn).toHaveBeenCalledWith(
+            "FOYER_DISK_CACHE is %s, not true or false, so the cache is kept in memory only",
+            '"yes"'
+        );
+    });
+
+    it("reads the variable when no layer is given", async () => {
+        vi.stubEnv("FOYER_DISK_CACHE", "true");
+        await new DiskCacheStore(dir).getOrFetch("k", async () => 1);
+        expect(await files()).toHaveLength(1);
+
+        vi.stubEnv("FOYER_DISK_CACHE", "false");
+        const memory = join(dir, "memory");
+        await new DiskCacheStore(memory).getOrFetch("k", async () => 1);
+        await expect(readdir(memory)).rejects.toThrow();
+    });
+
+    it("creates the shared instance once, on disk or in memory as the variable says, and logs which", async () => {
+        const global = globalThis as typeof globalThis & { __foyerDiskCache?: unknown };
+        const shared = global.__foyerDiskCache;
+        try {
+            for (const [value, line] of [
+                ["true", "Cache entries are written to %s"],
+                [undefined, "Cache entries are kept in memory only; set FOYER_DISK_CACHE=true to keep them on disk"],
+            ] as const) {
+                delete global.__foyerDiskCache;
+                vi.resetModules();
+                logger.info.mockClear();
+                vi.stubEnv("FOYER_DISK_CACHE", value);
+
+                const { default: cache, DiskCacheStore: Store } = await import("@/utils/cache/disk");
+
+                expect(cache).toBeInstanceOf(Store);
+                expect(logger.info).toHaveBeenCalledTimes(1);
+                expect(logger.info.mock.calls[0]![0]).toBe(line);
+            }
+            vi.resetModules();
+            expect((await import("@/utils/cache/disk")).default).toBe(global.__foyerDiskCache);
+            expect(logger.info).toHaveBeenCalledTimes(1);
+        } finally {
+            global.__foyerDiskCache = shared;
+        }
+    });
+});
+
+describe("utils/cache/disk in memory", () => {
+    const memory = () => new DiskCacheStore(dir, false);
+
+    it("writes nothing to the folder, and starts empty after a restart", async () => {
+        const cache = memory();
+        await cache.getOrFetch("k", async () => "v", { type: "feed", ttlMs: 60_000 });
+
+        expect(await cache.getOrFetch("k", async () => "new", { type: "feed" })).toBe("v");
+        expect(await readdir(dir)).toEqual([]);
+        expect(await memory().getOrFetch("k", async () => "new", { type: "feed" })).toBe("new");
+    });
+
+    it("lists, counts, deletes and clears entries by type", async () => {
+        const cache = memory();
+        await cache.getOrFetch("a", async () => "x", { type: "feed" });
+        await cache.getOrFetch("b", async () => "y", { type: "response", ttlMs: 60_000 });
+        await cache.getOrFetch("c", async () => "z");
+
+        expect(await cache.keys()).toEqual(["a", "b", "c"]);
+        expect(await cache.size("feed")).toBe(1);
+        expect((await cache.stats()).bytes).toBeGreaterThan(0);
+        expect((await cache.entries())[1]).toMatchObject({ key: "b", type: "response", value: "y" });
+
+        expect(await cache.del("a", "feed")).toBe(true);
+        expect(await cache.del("a", "feed")).toBe(false);
+        await cache.clear("response");
+        expect(await cache.keys()).toEqual(["c"]);
+        await cache.clear();
+        expect(await cache.size()).toBe(0);
+    });
+
+    it("keeps a value the disk layer cannot write, counted as 0 bytes", async () => {
+        const cache = memory();
+        const value = () => 1;
+        await cache.getOrFetch("k", async () => value);
+
+        expect(await cache.getOrFetch("k", async () => () => 2)).toBe(value);
+        expect(await cache.stats()).toEqual({ hits: 0, misses: 0, entries: 1, bytes: 0 });
+    });
+
+    it("drops an entry once it expires, and prunes it", async () => {
+        vi.useFakeTimers({ toFake: ["Date"] });
+        const cache = memory();
+        await cache.getOrFetch("old", async () => 1, { ttlMs: 1000 });
+        await cache.getOrFetch("live", async () => 2);
+        vi.advanceTimersByTime(1000);
+
+        await cache.prune();
+
+        expect(await cache.keys()).toEqual(["live"]);
+        expect(await cache.getOrFetch("old", async () => 3)).toBe(3);
     });
 });

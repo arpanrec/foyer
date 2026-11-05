@@ -1,7 +1,8 @@
-// Disk cache store, built on cacheable's Cacheable class with a file store as its `secondary` layer. It has the same
-// default export as memory.ts, a CacheStore, so a caller switches stores by changing one import. Entries are written to
-// disk as they are stored, so they outlive a restart; Cacheable keeps the entries it has read or written in memory too,
-// and `entries`, `keys`, `size` and `stats` read the folder.
+// The cache store, built on cacheable's Cacheable class with a record layer as its `secondary` layer, implementing the
+// CacheStore interface in types.ts. With FOYER_DISK_CACHE=true the record layer is a file store, so entries are written
+// to disk as they are stored and outlive a restart; otherwise it is a map (memory.ts), nothing is written to disk and
+// the cache starts empty after a restart. Cacheable keeps the entries it has read or written in its memory layer too,
+// and `entries`, `keys`, `size` and `stats` read the record layer.
 
 import { createHash } from "node:crypto";
 import { EventEmitter } from "node:events";
@@ -9,8 +10,9 @@ import { mkdir, readFile, readdir, rename, stat, unlink, writeFile } from "node:
 import { join } from "node:path";
 import { deserialize, serialize } from "node:v8";
 
-import { Cacheable, Keyv } from "cacheable";
+import { Cacheable, createKeyv, Keyv } from "cacheable";
 
+import { MemoryStore } from "@/utils/cache/memory";
 import type {
     CacheArtifactType,
     CacheEntryInfo,
@@ -18,7 +20,11 @@ import type {
     CachePolicy,
     CacheStats,
     CacheStore,
+    RecordStore,
+    StoredListing,
+    StoredRecord,
 } from "@/utils/cache/types";
+import { dataDir, getEnv } from "@/utils/env";
 import { errorMessage } from "@/utils/error";
 import createLogger from "@/utils/logger";
 import warnOnce from "@/utils/warn-once";
@@ -36,11 +42,7 @@ const FORMAT = 4;
 // A temp file older than this is the leftover of an interrupted write
 const STALE_TEMP_MS = 60_000;
 
-// What Keyv stores for a key. `expires` is undefined for a record that never expires.
-export type FileRecord = { value: unknown; expires?: number | undefined };
-type FileContent = { v: number; key: string; data: FileRecord };
-
-export type FileListing = { key: string; data: FileRecord; bytes: number };
+type FileContent = { v: number; key: string; data: StoredRecord };
 
 function isLive(content: FileContent | undefined, now: number): content is FileContent {
     return (
@@ -50,7 +52,7 @@ function isLive(content: FileContent | undefined, now: number): content is FileC
     );
 }
 
-export class FileStore extends EventEmitter {
+export class FileStore extends EventEmitter implements RecordStore {
     readonly opts = {};
     namespace?: string | undefined;
     private ready: Promise<boolean> | undefined;
@@ -84,7 +86,7 @@ export class FileStore extends EventEmitter {
     }
 
     // The live record stored for a key, or undefined. A file that is no longer any use is removed.
-    async get(key: string): Promise<FileRecord | undefined> {
+    async get(key: string): Promise<StoredRecord | undefined> {
         if (!(await this.available())) return undefined;
         const file = this.fileOf(key);
         let content: FileContent;
@@ -105,7 +107,7 @@ export class FileStore extends EventEmitter {
     }
 
     // A value the serializer cannot hold, such as a function, is not kept.
-    async set(key: string, data: FileRecord): Promise<boolean> {
+    async set(key: string, data: StoredRecord): Promise<boolean> {
         let bytes: Buffer;
         try {
             bytes = serialize({ v: FORMAT, key, data } satisfies FileContent);
@@ -148,11 +150,11 @@ export class FileStore extends EventEmitter {
     }
 
     // Every live entry with its key, record and file size. A file that cannot be decoded is left out and not removed.
-    async list(): Promise<FileListing[]> {
+    async list(): Promise<StoredListing[]> {
         if (!(await this.available())) return [];
         const names = await readdir(this.dir).catch(() => [] as string[]);
         const now = Date.now();
-        const listing: FileListing[] = [];
+        const listing: StoredListing[] = [];
         for (const name of names) {
             if (!name.endsWith(SUFFIX)) continue;
             try {
@@ -192,7 +194,20 @@ export class FileStore extends EventEmitter {
     }
 }
 
-const DISK_DIR = "/tmp/foyer/cache";
+const DISK_DIR = join(dataDir(), "cache");
+
+// FOYER_DISK_CACHE: `true` writes entries to disk, unset or `false` keeps them in memory. Any other value keeps them in
+// memory with a warning.
+export function isDiskCacheEnabled(): boolean {
+    const value = getEnv("DISK_CACHE");
+    if (value === undefined || value === "" || value === "false") return false;
+    if (value === "true") return true;
+    logger.warn(
+        "FOYER_DISK_CACHE is %s, not true or false, so the cache is kept in memory only",
+        JSON.stringify(value)
+    );
+    return false;
+}
 const UNTYPED = "untyped";
 const SEPARATOR = "\u0000";
 
@@ -212,16 +227,19 @@ function splitKey(stored: string): { type: CacheArtifactType | undefined; key: s
 const passThrough = ((data: unknown) => data) as never;
 
 export class DiskCacheStore implements CacheStore {
-    private readonly files: FileStore;
+    private readonly records: RecordStore;
     private readonly cache: Cacheable;
     private readonly loading = new Map<string, Promise<unknown>>();
     private readonly policies = new Map<CacheArtifactType, CachePolicy>();
 
-    constructor(dir: string = DISK_DIR) {
-        this.files = new FileStore(dir);
+    // `onDisk` picks the record layer: one file per entry under `dir`, or a map, which leaves `dir` untouched
+    constructor(dir: string = DISK_DIR, onDisk: boolean = isDiskCacheEnabled()) {
+        this.records = onDisk ? new FileStore(dir) : new MemoryStore();
         this.cache = new Cacheable({
+            // Values are stored as they are, never cloned, so a caller must not change what it gets back
+            primary: createKeyv({ useClone: false }),
             secondary: new Keyv({
-                store: this.files as never,
+                store: this.records as never,
                 serialize: passThrough,
                 deserialize: passThrough,
                 useKeyPrefix: false,
@@ -239,24 +257,27 @@ export class DiskCacheStore implements CacheStore {
         const id = recordKey(key, type);
         const label = `${type ?? UNTYPED} ${options.label ?? key}`;
 
-        if (!refresh) {
-            const found = await this.cache.get<T>(id);
-            if (found !== undefined) {
-                logger.debug("Cache disk hit: %s", label);
-                return found;
-            }
-        }
-
+        // Checked and registered synchronously, with no await in between, so two concurrent calls for the same key
+        // cannot both miss this and each start their own disk read or load.
         const running = this.loading.get(id);
         if (running) {
             logger.debug("Cache load shared: %s", label);
             return (await running) as T | undefined;
         }
 
-        logger.debug(refresh ? "Cache refresh: %s" : "Cache miss: %s", label);
-
         const run: { promise?: Promise<T | undefined> } = {};
         const loaded = (run.promise = (async () => {
+            if (!refresh) {
+                // getRaw, not get, so expiry is checked against this codebase's own now >= expires convention:
+                // Cacheable's own primary-layer check treats the exact expiry millisecond as still live.
+                const raw = await this.cache.getRaw<T>(id);
+                if (raw?.value !== undefined && (raw.expires === undefined || raw.expires > Date.now())) {
+                    logger.debug("Cache disk hit: %s", label);
+                    return raw.value;
+                }
+            }
+
+            logger.debug(refresh ? "Cache refresh: %s" : "Cache miss: %s", label);
             const value = await load();
             if (value === undefined) return undefined;
             // a key that was deleted or cleared while it loaded is not brought back by the old load
@@ -296,14 +317,14 @@ export class DiskCacheStore implements CacheStore {
             await this.cache.clear();
             return;
         }
-        for (const { key } of await this.files.list()) {
+        for (const { key } of await this.records.list()) {
             if (splitKey(key).type === type) await this.cache.delete(key);
         }
     }
 
-    // The live entries in the folder, with their type and key split out
+    // The live entries in the record layer, with their type and key split out
     private async list(type?: CacheArtifactType) {
-        return (await this.files.list())
+        return (await this.records.list())
             .map(({ key, data, bytes }) => ({ ...splitKey(key), expires: data.expires, value: data.value, bytes }))
             .filter((entry) => type === undefined || entry.type === type);
     }
@@ -326,7 +347,6 @@ export class DiskCacheStore implements CacheStore {
         return (await this.list(type)).length;
     }
 
-    // Only ttlMs is applied; maxEntries is ignored because the disk store has no entry limit
     async setPolicy(type: CacheArtifactType, policy: CachePolicy): Promise<void> {
         this.policies.set(type, policy);
     }
@@ -340,14 +360,22 @@ export class DiskCacheStore implements CacheStore {
         return { hits: 0, misses: 0, entries: entries.length, bytes: entries.reduce((sum, e) => sum + e.bytes, 0) };
     }
 
-    // Removes expired and undecodable files from the folder
+    // Removes expired records, and on disk undecodable files too
     async prune(): Promise<void> {
-        await this.files.prune();
+        await this.records.prune();
     }
+}
+
+// The shared instance, created once per process with one line saying where entries are kept
+function createSharedCache(): DiskCacheStore {
+    const onDisk = isDiskCacheEnabled();
+    if (onDisk) logger.info("Cache entries are written to %s", DISK_DIR);
+    else logger.info("Cache entries are kept in memory only; set FOYER_DISK_CACHE=true to keep them on disk");
+    return new DiskCacheStore(DISK_DIR, onDisk);
 }
 
 // Next.js bundles each route separately, so a module-level instance would be one cache per route.
 const globalForCache = globalThis as typeof globalThis & { __foyerDiskCache?: DiskCacheStore };
-const cache = (globalForCache.__foyerDiskCache ??= new DiskCacheStore());
+const cache = (globalForCache.__foyerDiskCache ??= createSharedCache());
 
 export default cache;

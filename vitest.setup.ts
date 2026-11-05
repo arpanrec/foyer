@@ -1,7 +1,11 @@
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
 import "@testing-library/jest-dom/vitest";
 import { cleanup } from "@testing-library/react";
 import type { ComponentType, ReactNode } from "react";
-import { afterEach, beforeEach, vi } from "vitest";
+import { afterAll, afterEach, beforeEach, vi } from "vitest";
 
 afterEach(() => {
     // Node-environment tests shouldn't require jsdom; guard cleanup accordingly.
@@ -49,6 +53,16 @@ beforeEach(() => {
 process.env["FOYER_ALLOWED_HOSTS"] = "*";
 // The logger writes no file, so tests leave nothing in the log folder
 process.env["LOG_TARGETS"] = "stdout";
+
+// A test file that does not set its own FOYER_DATA_DIR gets a private one, so a disk cache it turns on never collides with
+// another test file running at the same time, and nothing is left behind in the real /tmp/foyer.
+if (!process.env["FOYER_DATA_DIR"]) {
+    const testDataDir = mkdtempSync(join(tmpdir(), "foyer-test-"));
+    process.env["FOYER_DATA_DIR"] = testDataDir;
+    afterAll(() => {
+        rmSync(testDataDir, { recursive: true, force: true });
+    });
+}
 
 // Avoid NextAuth client-side fetches during unit tests.
 vi.mock("next-auth/react", () => ({

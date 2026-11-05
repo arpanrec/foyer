@@ -125,6 +125,64 @@ describe("utils/icons", () => {
         expect(httpProxy).toHaveBeenCalledTimes(3);
     });
 
+    describe("refresh, for a request with Cache-Control: no-cache", () => {
+        const SVG = (text: string) => [200, "image/svg+xml", Buffer.from(text), {}];
+
+        it("downloads a cached icon again and keeps the new copy for later requests", async () => {
+            httpProxy.mockResolvedValueOnce(SVG("<svg>old</svg>"));
+            await getIcon(["mdi", "home.svg"]);
+
+            httpProxy.mockResolvedValueOnce(SVG("<svg>new</svg>"));
+            expect((await getIcon(["mdi", "home.svg"], true))?.body.toString()).toBe("<svg>new</svg>");
+            expect((await getIcon(["mdi", "home.svg"]))?.body.toString()).toBe("<svg>new</svg>");
+            expect(httpProxy).toHaveBeenCalledTimes(2);
+        });
+
+        it("downloads an icon that was never cached", async () => {
+            httpProxy.mockResolvedValueOnce(SVG("<svg/>"));
+
+            expect((await getIcon(["mdi", "home.svg"], true))?.body.toString()).toBe("<svg/>");
+            expect(httpProxy).toHaveBeenCalledTimes(1);
+        });
+
+        it("downloads again even while a failed download is remembered", async () => {
+            httpProxy.mockResolvedValueOnce([404, "text/plain", Buffer.from("no"), {}]);
+            expect(await getIcon(["mdi", "home.svg"])).toBeUndefined();
+            expect(await getIcon(["mdi", "home.svg"])).toBeUndefined();
+            expect(httpProxy).toHaveBeenCalledTimes(1);
+
+            httpProxy.mockResolvedValueOnce(SVG("<svg/>"));
+            expect((await getIcon(["mdi", "home.svg"], true))?.body.toString()).toBe("<svg/>");
+            expect(httpProxy).toHaveBeenCalledTimes(2);
+        });
+
+        it("serves and keeps the old copy when the new download fails", async () => {
+            httpProxy.mockResolvedValueOnce(SVG("<svg>old</svg>"));
+            await getIcon(["mdi", "home.svg"]);
+
+            httpProxy.mockResolvedValueOnce([503, "text/plain", Buffer.from("down"), {}]);
+            expect((await getIcon(["mdi", "home.svg"], true))?.body.toString()).toBe("<svg>old</svg>");
+            expect((await getIcon(["mdi", "home.svg"]))?.body.toString()).toBe("<svg>old</svg>");
+            expect(httpProxy).toHaveBeenCalledTimes(2);
+        });
+
+        it("returns nothing when the download fails and there is no copy", async () => {
+            httpProxy.mockRejectedValueOnce([500, new Error("refused")]);
+
+            expect(await getIcon(["mdi", "home.svg"], true)).toBeUndefined();
+        });
+
+        it("downloads a remote image again", async () => {
+            httpProxy.mockResolvedValueOnce([200, "image/png", PNG, {}]);
+            await getRemoteImage("http://nas.lan/logo.png");
+
+            const NEW = Buffer.from([0x89, 0x50, 0x4e, 0x47, 1]);
+            httpProxy.mockResolvedValueOnce([200, "image/png", NEW, {}]);
+            expect((await getRemoteImage("http://nas.lan/logo.png", undefined, false, true))?.body).toEqual(NEW);
+            expect(httpProxy).toHaveBeenCalledTimes(2);
+        });
+    });
+
     describe("getRemoteImage", () => {
         it("rejects invalid and non-http URLs without fetching", async () => {
             expect(await getRemoteImage("not a url")).toBeUndefined();

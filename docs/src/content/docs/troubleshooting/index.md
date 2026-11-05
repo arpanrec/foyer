@@ -6,9 +6,14 @@ description: Basic Troubleshooting
 ## General Troubleshooting Tips
 
 - For API errors, clicking the "API Error Information" button in the widget will usually show some helpful information as to whether the issue is reaching the service host, an authentication issue, etc.
-- Check `foyer.log` in `FOYER_LOG_DIR` (`/tmp/foyer/logs` by default), or on docker simply e.g. `docker logs foyer`. This may provide some insight into the reason for an error, config load errors included.
+- Check `foyer.log` in `logs/` under `FOYER_DATA_DIR` (`/tmp/foyer/logs` by default), or on docker simply e.g. `docker logs foyer`. This may provide some insight into the reason for an error, config load errors included.
 - Check the browser error console, this can also sometimes provide useful information.
 - Consider setting the `ENV` variable `LOG_LEVEL` to `debug`.
+
+:::caution
+`debug` logs the full address Foyer calls, secrets in its query string or credentials included. See
+[Logging](/configs/environment-variables/#logging).
+:::
 
 ## Service Widget Errors
 

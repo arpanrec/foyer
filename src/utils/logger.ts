@@ -1,11 +1,10 @@
 import { accessSync, constants, mkdirSync, statSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { format as utilFormat } from "node:util";
 
 import winston from "winston";
 
-import { getEnv } from "@/utils/env";
+import { dataDir } from "@/utils/env";
 import { errorMessage } from "@/utils/error";
 
 export const LOG_FILE = "foyer.log";
@@ -17,9 +16,9 @@ type LoggerState = { logger: winston.Logger; children: Record<string, winston.Lo
 const LOGGER_KEY = Symbol.for("foyer.logger");
 type GlobalWithLogger = typeof globalThis & { [LOGGER_KEY]?: LoggerState };
 
-// FOYER_LOG_DIR, or foyer/logs in the system temp folder, which exists on every platform and in the Docker image
+// logs in FOYER_DATA_DIR
 export function logDir() {
-    return getEnv("LOG_DIR") || join(tmpdir(), "foyer", "logs");
+    return join(dataDir(), "logs");
 }
 
 function combineMessageAndSplat() {

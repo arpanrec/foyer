@@ -1,3 +1,5 @@
+import { PHASE_PRODUCTION_BUILD } from "next/constants";
+
 import cache from "@/utils/cache";
 import {
     CUSTOM_FILE_MEMBERS,
@@ -11,8 +13,8 @@ import {
 } from "@/utils/config/core";
 
 // The loaded config, kept in the cache under one key once it loads without errors. The first clean load stores it, a
-// clean reload replaces it, and nothing else changes it. With a disk or SQLite cache it outlives a restart until the
-// next reload.
+// clean reload replaces it, and nothing else changes it. With FOYER_DISK_CACHE=true the cache is on disk, so it outlives
+// a restart until the next reload.
 const CACHE_KEY = "foyerConfig";
 
 // next build prerenders a few pages, with no config file to read
@@ -28,7 +30,7 @@ async function loadAndKeep(): Promise<LoadedConfig> {
 }
 
 async function currentStore(): Promise<LoadedConfig> {
-    if (process.env["NEXT_PHASE"] === "phase-production-build") return EMPTY;
+    if (process.env["NEXT_PHASE"] === PHASE_PRODUCTION_BUILD) return EMPTY;
     // A loader that returns undefined only reads the cache
     const stored = await cache.getOrFetch<LoadedConfig>(CACHE_KEY, async () => undefined, { label: "config" });
     if (stored) return stored;

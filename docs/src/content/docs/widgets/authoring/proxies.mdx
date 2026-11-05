@@ -29,7 +29,7 @@ flowchart LR
         P["GET /api/services/proxy"]
         G["getServiceWidget<br/>full widget config with credentials"]
         R["widgets.ts registry<br/>api template, mappings, proxyHandler"]
-        H["Proxy handler<br/>generic, credentialed, jsonrpc, custom"]
+        H["Proxy handler<br/>generic, credentialed, jsonrpc, synology, or a widget's own"]
         X["httpProxy<br/>redirects, gzip, cookie jar"]
         V["validateWidgetData"]
     end

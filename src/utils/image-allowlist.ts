@@ -22,11 +22,15 @@ type Recorded = { publicOnly: boolean; keep: boolean };
 const KEY_PREFIX = "imageAllowlist:";
 
 async function readRecorded(href: string): Promise<Recorded | undefined> {
-    return cache.getOrFetch<Recorded>(KEY_PREFIX + href, async () => undefined, { label: "image allowlist entry" });
+    return cache.getOrFetch<Recorded>(KEY_PREFIX + href, async () => undefined, {
+        type: "image-allowlist",
+        label: "image allowlist entry",
+    });
 }
 
 async function writeRecorded(href: string, entry: Recorded) {
     await cache.getOrFetch(KEY_PREFIX + href, async () => entry, {
+        type: "image-allowlist",
         refresh: true,
         ttlMs: entry.keep ? undefined : ALLOW_MS,
         label: "image allowlist entry",

@@ -18,11 +18,22 @@ describe("app/api/icons/[...path]/handler", () => {
         const res = createMockRes();
         await handler({ query: { path: ["mdi", "home.svg"] } }, res as ApiResponse);
 
-        expect(getIcon).toHaveBeenCalledWith(["mdi", "home.svg"]);
+        expect(getIcon).toHaveBeenCalledWith(["mdi", "home.svg"], false);
         expect(res.headers["Content-Type"]).toBe("image/svg+xml");
         expect(res.headers["Content-Security-Policy"]).toContain("sandbox");
         expect(res.headers["X-Content-Type-Options"]).toBe("nosniff");
         expect(res.body).toEqual(Buffer.from("<svg/>"));
+    });
+
+    it("downloads the icon again for a request with Cache-Control: no-cache", async () => {
+        getIcon.mockResolvedValue({ body: Buffer.from("<svg/>"), contentType: "image/svg+xml" });
+
+        await handler(
+            { query: { path: ["mdi", "home.svg"] }, headers: { "cache-control": "no-cache" } },
+            createMockRes() as ApiResponse
+        );
+
+        expect(getIcon).toHaveBeenCalledWith(["mdi", "home.svg"], true);
     });
 
     it("answers 404 when the icon does not exist", async () => {
@@ -40,7 +51,7 @@ describe("app/api/icons/[...path]/handler", () => {
         const res = createMockRes();
         await handler({ query: { path: "favicon.svg" } }, res as ApiResponse);
 
-        expect(getIcon).toHaveBeenCalledWith(["favicon.svg"]);
+        expect(getIcon).toHaveBeenCalledWith(["favicon.svg"], false);
         expect(res.statusCode).toBe(404);
     });
 
@@ -50,7 +61,7 @@ describe("app/api/icons/[...path]/handler", () => {
         const res = createMockRes();
         await handler({ query: {} }, res as ApiResponse);
 
-        expect(getIcon).toHaveBeenCalledWith([]);
+        expect(getIcon).toHaveBeenCalledWith([], false);
         expect(res.statusCode).toBe(404);
     });
 });

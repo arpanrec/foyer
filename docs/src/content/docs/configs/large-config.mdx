@@ -1,0 +1,277 @@
+---
+title: Large configs
+description: Splitting a large Foyer config across folders, naming nested groups, and sharing values with Nunjucks
+---
+
+import { FileTree, TabItem, Tabs } from "@astrojs/starlight/components";
+
+A dashboard with a few dozen services fits in one config file. Past that, one file per group, a folder per large group and a few shared templates keep it readable. This page walks through one way to lay that out. Every name in it is an example: Foyer reads only the [config file](/configs/) and what it includes, so pick whatever file and folder names suit you.
+
+## Folder layout
+
+<FileTree>
+
+- config/
+    - foyer.config.jsonc.njk the config file, includes everything else
+    - settings.jsonc.njk
+    - bookmarks.jsonc.njk
+    - widgets.jsonc.njk
+    - docker.jsonc.njk
+    - macros.njk shared macros, imported where needed
+    - certs/
+        - docker-ca.pem
+        - docker-cert.pem
+        - docker-key.pem
+    - services.d/
+        - main.jsonc.njk the `services` array, one include per group
+        - media.jsonc.njk the Media group
+        - network.jsonc.njk the Network group
+        - machines.d/
+            - main.jsonc.njk the Machines group, one include per machine
+            - server-a.jsonc.njk
+            - server-b.jsonc.njk
+
+</FileTree>
+
+The config file includes one template per member:
+
+```jsonc title="foyer.config.jsonc.njk"
+{
+    "$schema": "https://foyer.arpanrec.com/foyer.schema.json",
+    "settings": {% include "./settings.jsonc.njk" %},
+    "services": {% include "./services.d/main.jsonc.njk" %},
+    "bookmarks": {% include "./bookmarks.jsonc.njk" %},
+    "widgets": {% include "./widgets.jsonc.njk" %},
+    "docker": {% include "./docker.jsonc.njk" %},
+}
+```
+
+An include path that does not start with `/` is relative to the template that names it, so `services.d/main.jsonc.njk` includes its neighbours as `./media.jsonc.njk`, and a file two folders down reaches `macros.njk` as `../../macros.njk`.
+
+## One file per group
+
+`services` is an array of groups, so `services.d/main.jsonc.njk` is an array with one include per top-level group. Each included file holds one group object. JSONC allows the trailing comma after the last include.
+
+<Tabs>
+<TabItem label="services.d/main.jsonc.njk">
+
+```jsonc
+[
+    {% include "./media.jsonc.njk" %},
+    {% include "./network.jsonc.njk" %},
+    {% include "./machines.d/main.jsonc.njk" %},
+]
+```
+
+</TabItem>
+<TabItem label="services.d/media.jsonc.njk">
+
+```jsonc
+{
+    "Media": [
+        {
+            "Media - Jellyfin": {
+                "href": "https://jellyfin.example.com",
+                "icon": "jellyfin.png",
+                "server": "server-a",
+                "container": "jellyfin",
+                "widget": {
+                    "type": "jellyfin",
+                    "url": "http://server-a.lan:8096",
+                    "key": {{ FOYER_VAR_JELLYFIN_KEY | dump }},
+                },
+            },
+        },
+    ],
+}
+```
+
+</TabItem>
+</Tabs>
+
+The order of the includes is the order of the groups on the dashboard, unless the [layout](/configs/settings/#layout) sorts them.
+
+## A folder per large group
+
+When a group grows its own [nested groups](/configs/services/#nested-groups), such as one per machine, give it a folder. Its `main.jsonc.njk` holds the group and includes one file per nested group:
+
+<Tabs>
+<TabItem label="services.d/machines.d/main.jsonc.njk">
+
+```jsonc
+{
+    "Machines": [
+        {% include "./server-a.jsonc.njk" %},
+        {% include "./server-b.jsonc.njk" %},
+    ],
+}
+```
+
+</TabItem>
+<TabItem label="services.d/machines.d/server-a.jsonc.njk">
+
+```jsonc
+{
+    "Machines - Server A": [
+        {
+            "Machines - Server A - Info": {
+                "href": "http://server-a.lan:61208",
+                "widget": {
+                    "type": "glances",
+                    "url": "http://server-a.lan:61208",
+                    "version": 4,
+                    "metric": "info",
+                },
+            },
+        },
+        {
+            "Machines - Server A - CPU": {
+                "widget": {
+                    "type": "glances",
+                    "url": "http://server-a.lan:61208",
+                    "version": 4,
+                    "metric": "cpu",
+                },
+            },
+        },
+    ],
+}
+```
+
+</TabItem>
+</Tabs>
+
+[Shared values and macros](#shared-values-and-macros) below shortens the repeated widget blocks in a file like this.
+
+## Naming groups and services
+
+Foyer finds a service widget's config by its group name and service name, taking the first match, and the `layout` in [settings](/configs/settings/) matches groups by exact name. With two groups or services of the same name, even in different files, either lookup can land on the wrong one. One scheme that rules this out is to start every name with its parent's full name and `" - "`:
+
+| Level         | Example                          |
+| ------------- | -------------------------------- |
+| Group         | `Machines`                       |
+| Nested group  | `Machines - Server A`            |
+| Service       | `Machines - Server A - CPU`      |
+| Another group | `Media`, with `Media - Jellyfin` |
+
+Every name is then unique across all the files, and a name on its own tells you which file it lives in.
+
+## Layout that matches
+
+The `layout` keys use the same names, and nested groups nest under their parent's key:
+
+```jsonc title="settings.jsonc.njk"
+{
+    "title": "Home",
+    "layout": {
+        "Media": { "tab": "Apps", "style": "row", "columns": 3 },
+        "Network": { "tab": "Apps", "style": "row", "columns": 2 },
+        "Machines": {
+            "tab": "Machines",
+            "Machines - Server A": { "style": "row", "columns": 3 },
+            "Machines - Server B": { "style": "row", "columns": 3, "initiallyCollapsed": true },
+        },
+    },
+}
+```
+
+A `layout` key that matches no group raises no error and is not shown. The one exception is a key nested under a group that does exist, such as `Machines - Server C` under `Machines`, that holds nested group keys of its own: it shows up as an empty nested group. After a group is renamed, the renamed group loses its `layout` settings and falls back to the default placement, off its tab. Rename the group in its services file and its `layout` key in the same edit.
+
+## Shared values and macros
+
+### Values used in several places
+
+`{% set %}` names a value once, and the `dump` filter writes it as JSON, objects included. Every Docker server below uses the same TLS files:
+
+```jsonc title="docker.jsonc.njk"
+{% set configDir = FOYER_VAR_CONFIG_DIR | default("/app/config") %}
+{% set dockerTls = {
+    "caFile": configDir + "/certs/docker-ca.pem",
+    "certFile": configDir + "/certs/docker-cert.pem",
+    "keyFile": configDir + "/certs/docker-key.pem"
+} %}
+{
+    "server-a": { "host": "server-a.lan", "port": 2376, "tls": {{ dockerTls | dump }} },
+    "server-b": { "host": "server-b.lan", "port": 2376, "tls": {{ dockerTls | dump }} },
+    "local": { "socket": "/var/run/docker.sock" },
+}
+```
+
+Foyer opens the TLS files at the path as written, never relative to the config folder. The container mounts the folder at `/app/config`, so that is the default; when the same folder runs elsewhere, such as with `pnpm dev`, set `FOYER_VAR_CONFIG_DIR` to where it lives. The server names `server-a` and `server-b` are what a service's `server` field refers to.
+
+A `{% set %}` in an included template stays inside that template, so two machine files can both set `url` without clashing.
+
+### Repeated widget blocks
+
+A machine with a dozen Glances widgets repeats the same URL, credentials and options a dozen times. A macro writes the block once:
+
+```jsonc title="macros.njk"
+{% macro glances(url, metric) -%}
+{
+    "type": "glances",
+    "url": {{ url | dump }},
+    "version": 4,
+    "username": "glances",
+    "password": {{ FOYER_VAR_GLANCES_PASSWORD | dump }},
+    "metric": {{ metric | dump }},
+    "chart": true,
+    "refreshInterval": {{ FOYER_VAR_REFRESH_MS }},
+}
+{%- endmacro %}
+```
+
+Each machine file imports it and calls it once per widget:
+
+```jsonc title="services.d/machines.d/server-a.jsonc.njk"
+{% import "../../macros.njk" as m with context %}
+{% set url = "http://server-a.lan:61208" %}
+{
+    "Machines - Server A": [
+        { "Machines - Server A - Info": { "href": {{ url | dump }}, "widget": {{ m.glances(url, "info") }} } },
+        { "Machines - Server A - CPU": { "widget": {{ m.glances(url, "cpu") }} } },
+        { "Machines - Server A - Memory": { "widget": {{ m.glances(url, "memory") }} } },
+        { "Machines - Server A - Root disk": { "widget": {{ m.glances(url, "fs:/") }} } },
+    ],
+}
+```
+
+`with context` lets the macro read the `FOYER_VAR_*` variables. Without it, the macro sees only its arguments, and printing `FOYER_VAR_GLANCES_PASSWORD` fails the load as an unset variable.
+
+`FOYER_VAR_REFRESH_MS` prints without quotes, so `5000` becomes a JSON number. The [resources](/widgets/info/resources/) widget in `widgets.jsonc.njk` can use the same variable for its `refresh`, so one value sets the refresh rate across the dashboard.
+
+## Secrets
+
+Keep API keys and passwords out of the templates and pass them in as `FOYER_VAR_*` environment variables, as `FOYER_VAR_JELLYFIN_KEY` and `FOYER_VAR_GLANCES_PASSWORD` do above. The config folder can then go into version control as it is. Every variable a template prints must be set, or the whole config fails to load with an error that names the file and line. See [Environment variables and secrets](/configs/#environment-variables-and-secrets) for defaults, optional values and secrets read from files.
+
+## Running it
+
+Mount the folder at `/app/config`, read-only, and set the variables the templates print:
+
+```yaml title="compose.yaml"
+services:
+    foyer:
+        image: docker.io/arpanrecme/foyer:latest
+        ports:
+            - 3000:3000
+        environment:
+            FOYER_ALLOWED_HOSTS: foyer.example.com
+            FOYER_VAR_REFRESH_MS: 5000
+            FOYER_VAR_JELLYFIN_KEY: ${JELLYFIN_KEY}
+            FOYER_VAR_GLANCES_PASSWORD: ${GLANCES_PASSWORD}
+        volumes:
+            - ./config:/app/config:ro
+            - /var/run/docker.sock:/var/run/docker.sock:ro
+```
+
+From a checkout of Foyer, point `FOYER_CONFIG_FILE` at the same folder and set `FOYER_VAR_CONFIG_DIR` for the TLS paths:
+
+```sh
+FOYER_CONFIG_FILE=/path/to/config/foyer.config.jsonc.njk \
+FOYER_VAR_CONFIG_DIR=/path/to/config \
+FOYER_VAR_REFRESH_MS=5000 \
+FOYER_VAR_JELLYFIN_KEY=... \
+FOYER_VAR_GLANCES_PASSWORD=... \
+pnpm dev
+```
+
+The footer's reload button reads every included template again, so an edit to any file in the folder shows up without a restart.

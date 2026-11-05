@@ -42,7 +42,7 @@ describe("app/api/icon-proxy/handler", () => {
         const res = createMockRes();
         await handler({ query: { url: "http://nas.lan/logo.png" } }, res as ApiResponse);
 
-        expect(getRemoteImage).toHaveBeenCalledWith("http://nas.lan/logo.png", undefined, false);
+        expect(getRemoteImage).toHaveBeenCalledWith("http://nas.lan/logo.png", undefined, false, false);
         expect(res.headers["Content-Type"]).toBe("image/png");
         expect(res.body).toEqual(body);
     });
@@ -54,7 +54,7 @@ describe("app/api/icon-proxy/handler", () => {
         const res = createMockRes();
         await handler({ query: { url: "https://feed.example/a.png" } }, res as ApiResponse);
 
-        expect(getRemoteImage).toHaveBeenCalledWith("https://feed.example/a.png", undefined, true);
+        expect(getRemoteImage).toHaveBeenCalledWith("https://feed.example/a.png", undefined, true, false);
     });
 
     it("passes a requested maxAge on, capped at one day, and sends it as the browser cache time", async () => {
@@ -62,14 +62,25 @@ describe("app/api/icon-proxy/handler", () => {
 
         const res = createMockRes();
         await handler({ query: { url: "http://nas.lan/p.jpg", maxAge: "120" } }, res as ApiResponse);
-        expect(getRemoteImage).toHaveBeenCalledWith("http://nas.lan/p.jpg", 120, false);
+        expect(getRemoteImage).toHaveBeenCalledWith("http://nas.lan/p.jpg", 120, false, false);
         expect(res.headers["Cache-Control"]).toBe("private, max-age=120");
 
         await handler({ query: { url: "http://nas.lan/p.jpg", maxAge: "999999999" } }, createMockRes() as ApiResponse);
-        expect(getRemoteImage).toHaveBeenLastCalledWith("http://nas.lan/p.jpg", 86400, false);
+        expect(getRemoteImage).toHaveBeenLastCalledWith("http://nas.lan/p.jpg", 86400, false, false);
 
         await handler({ query: { url: "http://nas.lan/p.jpg", maxAge: "nope" } }, createMockRes() as ApiResponse);
-        expect(getRemoteImage).toHaveBeenLastCalledWith("http://nas.lan/p.jpg", undefined, false);
+        expect(getRemoteImage).toHaveBeenLastCalledWith("http://nas.lan/p.jpg", undefined, false, false);
+    });
+
+    it("downloads the image again for a request with Cache-Control: no-cache", async () => {
+        getRemoteImage.mockResolvedValue({ body: Buffer.from([1]), contentType: "image/png" });
+
+        await handler(
+            { query: { url: "http://nas.lan/logo.png" }, headers: { "cache-control": "no-cache" } },
+            createMockRes() as ApiResponse
+        );
+
+        expect(getRemoteImage).toHaveBeenCalledWith("http://nas.lan/logo.png", undefined, false, true);
     });
 
     it("answers 400 and logs a warning without a url", async () => {

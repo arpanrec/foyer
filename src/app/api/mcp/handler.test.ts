@@ -6,7 +6,9 @@ const { getServerSession, errorMock } = vi.hoisted(() => ({
 }));
 
 vi.mock("next-auth/next", () => ({ getServerSession }));
-vi.mock("@/utils/logger", () => ({ default: () => ({ error: errorMock, warn: vi.fn(), debug: vi.fn() }) }));
+vi.mock("@/utils/logger", () => ({
+    default: () => ({ error: errorMock, warn: vi.fn(), info: vi.fn(), debug: vi.fn() }),
+}));
 
 type McpBody = {
     result?: {

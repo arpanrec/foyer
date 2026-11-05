@@ -38,7 +38,7 @@ You can customize the start_url as required for installable apps. The default is
 
 ## Background Image
 
-A background, favicon or PWA icon given as a full URL is downloaded by the Foyer server and served to the browser from Foyer, so the image host only needs to be reachable from the server. Downloaded images are kept in memory and downloaded again after a restart. The background is also served to the sign-in page without a login.
+A background, favicon or PWA icon given as a full URL is downloaded by the Foyer server and served to the browser from Foyer, so the image host only needs to be reachable from the server. Downloaded images are kept in Foyer's cache, which starts empty after a restart unless [`FOYER_DISK_CACHE`](/configs/environment-variables/#cache) keeps it on disk. A hard reload downloads them again, see [Icons](/configs/services/#icons). The background is also served to the sign-in page without a login.
 
 :::caution[Heads Up!]
 You will need to restart the container any time you add new local images so the server can discover them.

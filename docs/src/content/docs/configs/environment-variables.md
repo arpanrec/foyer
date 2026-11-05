@@ -7,17 +7,19 @@ This page lists every environment variable Foyer reads. Set runtime variables on
 
 ## Server
 
-| Variable                   | Default                  | Description                                                                                                                                                                                                                   |
-| -------------------------- | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `FOYER_ALLOWED_HOSTS`      | none                     | Comma-separated list of hosts (with the port when it is not 80 or 443) allowed to reach Foyer, such as `foyer.arpanrec.com,192.168.1.2:1234`. `*` disables the check. See [Installation](/installation/#foyer_allowed_hosts). |
-| `FOYER_CONFIG_FILE`        | `foyer.config.jsonc.njk` | Path to the [config file](/configs/), read from the working directory when relative. Without it the dashboard shows an error in place of your services. The Docker image uses `/app/config/foyer.config.jsonc.njk`.           |
-| `FOYER_EXTERNAL_URL`       | none                     | Absolute URL users open Foyer at, including scheme and port when needed. Required when [authentication](/installation/#security--authentication) is enabled.                                                                  |
-| `FOYER_PROXY_DISABLE_IPV6` | `false`                  | Set to `true` to make requests from widget proxies use IPv4 only.                                                                                                                                                             |
-| `PORT`                     | `3000`                   | Port the server listens on. Also used to build the default allowed hosts (`localhost:<port>`, `127.0.0.1:<port>`, `[::1]:<port>`).                                                                                            |
-| `HOSTNAME`                 | `::`                     | Address the server binds to. The Docker image falls back to `0.0.0.0` when it cannot bind to IPv6.                                                                                                                            |
-| `FOYER_BUILDTIME`          | none                     | Docker image only. The entrypoint sets it to the container start time. It is part of the config hash, so open dashboards reload after the container restarts.                                                                 |
-| `FOYER_APP_DIR`            | working directory        | Folder that holds `public/locales`. The `foyer` command sets it to the installed package; leave it unset otherwise.                                                                                                           |
-| `PUID`, `PGID`             | `0`                      | Docker image only. User and group ID the server runs as. The entrypoint changes ownership of `/app/config` to match.                                                                                                          |
+| Variable                   | Default                  | Description                                                                                                                                                                                                                                                                                 |
+| -------------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `FOYER_ALLOWED_HOSTS`      | none                     | Comma-separated list of hosts (with the port when it is not 80 or 443) allowed to reach Foyer, such as `foyer.arpanrec.com,192.168.1.2:1234`. `*` disables the check. See [Installation](/installation/#foyer_allowed_hosts).                                                               |
+| `FOYER_CONFIG_FILE`        | `foyer.config.jsonc.njk` | Path to the [config file](/configs/), read from the working directory when relative. Without it the dashboard shows an error in place of your services. The Docker image uses `/app/config/foyer.config.jsonc.njk`.                                                                         |
+| `FOYER_EXTERNAL_URL`       | none                     | Absolute URL users open Foyer at, including scheme and port when needed. Required when [authentication](/installation/#security--authentication) is enabled.                                                                                                                                |
+| `FOYER_PROXY_DISABLE_IPV6` | `false`                  | Set to `true` to make requests from widget proxies use IPv4 only.                                                                                                                                                                                                                           |
+| `PORT`                     | `3000`                   | Port the server listens on. Also used to build the default allowed hosts (`localhost:<port>`, `127.0.0.1:<port>`, `[::1]:<port>`).                                                                                                                                                          |
+| `HOSTNAME`                 | `::`                     | Address the server binds to. The Docker image falls back to `0.0.0.0` when it cannot bind to IPv6.                                                                                                                                                                                          |
+| `FOYER_BUILDTIME`          | none                     | Docker image only. The entrypoint sets it to the container start time. It is part of the config hash, so open dashboards reload after the container restarts.                                                                                                                               |
+| `FOYER_APP_DIR`            | working directory        | Folder that holds `public/locales`. The `foyer` command sets it to the installed package; leave it unset otherwise.                                                                                                                                                                         |
+| `FOYER_DATA_DIR`           | `/tmp/foyer`             | Folder for Foyer's own on-disk state: `foyer.log` under `logs/`, see [Logging](#logging), and the cache under `cache/` when `FOYER_DISK_CACHE` is `true`, see [Cache](#cache). Foyer uses the path as written, so a relative path is read from the working directory; use an absolute path. |
+| `FOYER_DISK_CACHE`         | `false`                  | Set to `true` to write the cache to disk under `FOYER_DATA_DIR`, so it survives a restart. See [Cache](#cache).                                                                                                                                                                             |
+| `PUID`, `PGID`             | `0`                      | Docker image only. User and group ID the server runs as. The entrypoint changes ownership of `/app/config` to match.                                                                                                                                                                        |
 
 ## Browser access
 
@@ -59,17 +61,31 @@ See [Model Context Protocol](/configs/mcp/) for the endpoint itself.
 
 ## Logging
 
-| Variable        | Default                    | Description                                                                                                                                                                                                                                                                                    |
-| --------------- | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `FOYER_LOG_DIR` | `<system temp>/foyer/logs` | Folder for `foyer.log`, created when missing. The default is `/tmp/foyer/logs` on Linux and in the Docker image, and the `foyer/logs` folder in the system temp folder elsewhere. Foyer uses the path as written, so a relative path is read from the working directory; use an absolute path. |
-| `LOG_LEVEL`     | `info`                     | Log level: `error`, `warn`, `info`, `http`, `verbose`, `debug` or `silly`, in any case. Any other value logs at `info` with a warning. See [Troubleshooting](/troubleshooting/).                                                                                                               |
-| `LOG_TARGETS`   | `both`                     | Where logs go: `stdout`, `file` (`foyer.log` in `FOYER_LOG_DIR`) or `both`, in any case. Any other value logs to both with a warning.                                                                                                                                                          |
+| Variable      | Default | Description                                                                                                                                                                      |
+| ------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `LOG_LEVEL`   | `info`  | Log level: `error`, `warn`, `info`, `http`, `verbose`, `debug` or `silly`, in any case. Any other value logs at `info` with a warning. See [Troubleshooting](/troubleshooting/). |
+| `LOG_TARGETS` | `both`  | Where logs go: `stdout`, `file` (`foyer.log` in `logs/` under `FOYER_DATA_DIR`) or `both`, in any case. Any other value logs to both with a warning.                             |
 
-Every server message goes through the same logger, config load errors included, so `LOG_TARGETS` and `LOG_LEVEL` apply to all of them. If Foyer cannot create or write to `FOYER_LOG_DIR`, cannot write to an existing `foyer.log` (for example one left by a container that ran with a different `PUID`), or `foyer.log` fails while the server runs, it logs a warning and writes to the console only.
+:::caution
+At `debug` level, Foyer logs the full address it called, including any API key, token or other secret carried in its
+query string or credentials, so a troubleshooting `foyer.log` can leak secrets. Turn `LOG_LEVEL` back to `info` once
+done, and treat a debug-level log file as sensitive: redact it before sharing it, for example when attaching it to an
+issue.
+:::
 
-The system temp folder is emptied on reboot, and in a container it goes away with the container. Set `FOYER_LOG_DIR` to a mounted folder of its own, such as `/app/logs`, to keep the log file; the config folder can then stay read-only. The user Foyer runs as (`PUID` in the Docker image) must be able to write there.
+`foyer.log` lives in `logs/` under [`FOYER_DATA_DIR`](#server) (`/tmp/foyer/logs` by default), created when missing. Every server message goes through the same logger, config load errors included, so `LOG_TARGETS` and `LOG_LEVEL` apply to all of them. If Foyer cannot create or write to that folder, cannot write to an existing `foyer.log` (for example one left by a container that ran with a different `PUID`), or `foyer.log` fails while the server runs, it logs a warning and writes to the console only.
+
+The default `/tmp/foyer` is emptied on reboot, and in a container it goes away with the container. Set `FOYER_DATA_DIR` to a mounted folder of its own, such as `/app/data`, to keep the log file across restarts; the config folder can then stay read-only. The user Foyer runs as (`PUID` in the Docker image) must be able to write there.
 
 Log files rotate automatically when they reach 10 MiB. Foyer keeps the current `foyer.log` and numbered rotated files (`foyer1.log`, `foyer2.log` and so on) up to a fixed limit, and removes the oldest rotated file when a new one is created.
+
+## Cache
+
+Foyer caches downloaded icons and images, feeds, logins to upstream services, widget responses and the loaded config. By default the cache is kept in memory only: nothing is written to disk, and it starts empty after a restart, so every icon is downloaded again and every service logs in again.
+
+Set `FOYER_DISK_CACHE` to `true` to write each entry to a file in `cache/` under [`FOYER_DATA_DIR`](#server) as well. Entries then survive a restart for as long as that folder does, so point `FOYER_DATA_DIR` at a mounted folder, as for the log file above. The loaded config is one of those entries: after a restart, Foyer serves the config it stored and does not read the config file until the reload button in the footer is used, see [Loading](/configs/#loading). Entries hold service logins and tokens, so each file is written readable only by the user Foyer runs as (mode `0600`). When `cache/` is missing, Foyer creates it with mode `0700`; a folder that already exists keeps its own permissions. A value that cannot be written to a file stays in memory, and if the folder cannot be created or written to, Foyer logs a warning and keeps the cache in memory.
+
+`false` or no value keeps the cache in memory. Any other value does the same and logs a warning that names it. Foyer reads the variable once, the first time the server uses the cache, so a change takes a restart.
 
 ## Build time
 

@@ -5,7 +5,6 @@ import getServiceWidget from "@/utils/config/service-helpers";
 import { byDateDesc } from "@/utils/dates";
 import { errorMessage } from "@/utils/error";
 import { allowImageUrl } from "@/utils/image-allowlist";
-import { loggableUrl } from "@/utils/loggable-url";
 import createLogger from "@/utils/logger";
 import { sanitizeErrorURL } from "@/utils/proxy/api-helpers";
 import { httpProxy } from "@/utils/proxy/http";
@@ -41,14 +40,15 @@ async function loadFeed(url: URL): Promise<FeedItem[]> {
     });
 
     if (status !== 200) {
-        logger.debug("HTTP %d retrieving feed %s//%s%s", status, url.protocol, url.host, url.pathname);
+        logger.debug("HTTP %d retrieving feed %s", status, url.href);
         throw new FeedFailure({ status, error: { message: "HTTP Error", url: sanitizeErrorURL(url) } });
     }
 
     try {
         return parseFeed(Buffer.from(data as Uint8Array).toString());
     } catch (e) {
-        logger.error("Error parsing feed %s//%s%s: %s", url.protocol, url.host, url.pathname, errorMessage(e));
+        logger.error("Error parsing feed %s: %s", url.host, errorMessage(e));
+        logger.debug("Error parsing feed %s: %s", url.href, errorMessage(e));
         throw new FeedFailure({ status: 500, error: { message: "Invalid feed", url: sanitizeErrorURL(url) } });
     }
 }
@@ -68,7 +68,7 @@ async function fetchFeed(url: URL, cacheMs: number): Promise<FeedFetched | FeedF
                 ? await cache.getOrFetch(`feed:${url.href}`, () => loadFeed(url), {
                       type: "feed",
                       ttlMs: cacheMs,
-                      label: `feed ${loggableUrl(url)}`,
+                      label: `feed ${url.href}`,
                   })
                 : await loadFeed(url);
         return { items: items ?? [] };

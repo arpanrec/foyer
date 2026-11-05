@@ -103,7 +103,7 @@ A config can also extend a base template and fill in its blocks:
 </TabItem>
 </Tabs>
 
-See the [Nunjucks templating docs](https://mozilla.github.io/nunjucks/templating.html) for loops, conditions, macros and filters.
+See the [Nunjucks templating docs](https://mozilla.github.io/nunjucks/templating.html) for loops, conditions, macros and filters, and [Large configs](/configs/large-config/) for a worked layout of a config split across folders, with shared values and macros.
 
 ## Environment variables and secrets
 
@@ -158,9 +158,11 @@ JSONC comments (`//` and `/* */`) stay in the rendered text and are skipped when
 
 ## Loading
 
-Foyer loads the config the first time a page or API call needs it, and keeps it in memory once it loads without errors. A config that fails to load is not kept: the dashboard shows the error, and the next page load or API call loads the file again, so fixing the file is enough, without a reload or restart.
+Foyer loads the config the first time a page or API call needs it, and keeps it in the cache once it loads without errors. A config that fails to load is not kept: the dashboard shows the error, and the next page load or API call loads the file again, so fixing the file is enough, without a reload or restart.
 
 The reload button in the dashboard footer loads the config again without a restart, and reads every template it includes again. When the new config loads cleanly, Foyer replaces the old one and the page reloads. When it has an error, a popup says the config is broken and shows the reason, and Foyer keeps the config it already had. When a reload, a restart or a fixed file loads a different config, other open dashboards reload themselves the next time their tab gets focus.
+
+With [`FOYER_DISK_CACHE`](/configs/environment-variables/#cache) set to `true`, the loaded config is kept on disk with the rest of the cache, so a restart serves it without reading the config file again. A change to the file, to a template it includes or to a `FOYER_VAR_` variable it prints, made while Foyer was stopped, shows up only after the reload button loads the config again.
 
 ## Schema
 
@@ -187,7 +189,7 @@ The whole config fails to load, and the dashboard shows the error, when the conf
 
 When `customCss` or `customJs` is not a string, Foyer logs the error, leaves that member out, and shows the error on the dashboard until the file is fixed. Such a config is not kept either, so the next request loads the file again. An error in `widgets` leaves out the information widgets and appears only in the logs, so the rest of the dashboard still renders.
 
-Messages from loading the config go through Foyer's logger like every other server message: to the console output (`docker logs foyer` for a container, or the terminal that runs `pnpm start`) and to `foyer.log` in `FOYER_LOG_DIR`, as `LOG_TARGETS` and `LOG_LEVEL` set. See [Logging](/configs/environment-variables/#logging).
+Messages from loading the config go through Foyer's logger like every other server message: to the console output (`docker logs foyer` for a container, or the terminal that runs `pnpm start`) and to `foyer.log` in `logs/` under `FOYER_DATA_DIR`, as `LOG_TARGETS` and `LOG_LEVEL` set. See [Logging](/configs/environment-variables/#logging).
 
 ## Security
 

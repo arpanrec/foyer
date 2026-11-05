@@ -1,5 +1,4 @@
 import cache from "@/utils/cache";
-import { loggableUrl } from "@/utils/loggable-url";
 import createLogger from "@/utils/logger";
 import { httpProxy } from "@/utils/proxy/http";
 import { foyerUserAgent } from "@/utils/proxy/user-agent";
@@ -21,7 +20,7 @@ export const ICON_CONTENT_TYPES: Record<string, string> = {
     avif: "image/avif",
 };
 
-// Icon sets are downloaded from a CDN the first time they are requested and then kept in the in-memory cache
+// Icon sets are downloaded from a CDN the first time they are requested and then kept in the cache
 const REMOTE_SETS = {
     mdi: (_ext: string, name: string) => `https://cdn.jsdelivr.net/npm/@mdi/svg@latest/svg/${name}.svg`,
     si: (_ext: string, name: string) => `https://cdn.jsdelivr.net/npm/simple-icons@latest/icons/${name}.svg`,
@@ -112,9 +111,14 @@ function keepFor(stored: Stored) {
 // The copy is shared by every caller of the URL, so its age is judged per caller: one that allows `maxAgeSeconds` reuses
 // a younger copy, and an older one is downloaded again. When that fails, the old copy still serves, and the failure is
 // remembered so the next callers do not wait on a host that is down. A failure with no copy is remembered the same way.
-async function cachedImage(url: string, maxAgeSeconds: number, publicOnly = false): Promise<IconResult | undefined> {
-    // the URL may carry a token, so the log shows it without its query
-    const label = loggableUrl(url);
+// `refresh`, for a client that sent Cache-Control: no-cache, downloads it again whatever the copy's age or a remembered
+// failure, and stores what it gets; the old copy is only the fallback when that download fails.
+async function cachedImage(
+    url: string,
+    maxAgeSeconds: number,
+    publicOnly = false,
+    refresh = false
+): Promise<IconResult | undefined> {
     const load = (previous?: StoredImage) => async (): Promise<Stored> => {
         try {
             const fetched = await fetchImage(url, publicOnly);
@@ -122,12 +126,22 @@ async function cachedImage(url: string, maxAgeSeconds: number, publicOnly = fals
         } catch (error) {
             // httpProxy rejects with [status, error]
             logger.warn("Icon request to %s failed", new URL(url).host);
-            logger.debug("Icon request to %s failed: %o", label, error);
+            logger.debug("Icon request to %s failed: %o", url, error);
         }
         const retryAfter = Date.now() + FAILURE_MS;
         return previous ? { ...previous, retryAfter } : { failed: true, retryAfter };
     };
-    const options = { type: "image", ttlMs: keepFor, label } as const;
+    const options = { type: "image", ttlMs: keepFor } as const;
+
+    if (refresh) {
+        const previous = await cache.getOrFetch<Stored>(url, async () => undefined, options);
+        const current = await cache.getOrFetch<Stored>(
+            url,
+            load(previous && !isFailure(previous) ? previous : undefined),
+            { ...options, refresh: true }
+        );
+        return current && !isFailure(current) ? { body: current.body, contentType: current.contentType } : undefined;
+    }
 
     const stored = await cache.getOrFetch<Stored>(url, load(), options);
     if (!stored || isFailure(stored)) return undefined;
@@ -140,8 +154,8 @@ async function cachedImage(url: string, maxAgeSeconds: number, publicOnly = fals
     return { body: current.body, contentType: current.contentType };
 }
 
-// An icon from a set, downloaded from the CDN on first use
-export async function getIcon(segments: string[]): Promise<IconResult | undefined> {
+// An icon from a set, downloaded from the CDN on first use, or again when `refresh` is set
+export async function getIcon(segments: string[], refresh = false): Promise<IconResult | undefined> {
     const [set, ...rest] = segments;
     if (set !== "mdi" && set !== "si" && set !== "sh" && set !== "di") return undefined;
 
@@ -152,16 +166,18 @@ export async function getIcon(segments: string[]): Promise<IconResult | undefine
     if (!file.endsWith(`.${ext}`) || !isIconName(file)) return undefined;
 
     const url = REMOTE_SETS[set](ext, file.slice(0, -(ext.length + 1)));
-    const image = await cachedImage(url, DEFAULT_MAX_AGE_SECONDS);
+    const image = await cachedImage(url, DEFAULT_MAX_AGE_SECONDS, false, refresh);
     return image && { body: image.body, contentType: ICON_CONTENT_TYPES[ext]! };
 }
 
 // An image the user pointed a service, bookmark or widget at with a full URL. `publicOnly` is for an address a third
-// party supplied, such as a feed item, and refuses any host on a private or local network.
+// party supplied, such as a feed item, and refuses any host on a private or local network. `refresh` downloads it again
+// instead of serving the cached copy.
 export async function getRemoteImage(
     rawUrl: string,
     maxAgeSeconds = DEFAULT_MAX_AGE_SECONDS,
-    publicOnly = false
+    publicOnly = false,
+    refresh = false
 ): Promise<IconResult | undefined> {
     let url: URL;
     try {
@@ -171,5 +187,5 @@ export async function getRemoteImage(
     }
     if (url.protocol !== "http:" && url.protocol !== "https:") return undefined;
 
-    return cachedImage(url.href, maxAgeSeconds, publicOnly);
+    return cachedImage(url.href, maxAgeSeconds, publicOnly, refresh);
 }

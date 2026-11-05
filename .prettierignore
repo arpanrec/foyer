@@ -10,3 +10,4 @@
 /out
 /build
 next-env.d.ts
+/data

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { getEnv, isAuthEnabled } from "@/utils/env";
+import { dataDir, getEnv, isAuthEnabled } from "@/utils/env";
 
 describe("utils/env", () => {
     afterEach(() => vi.unstubAllEnvs());
@@ -23,5 +23,13 @@ describe("utils/env", () => {
 
         vi.stubEnv("FOYER_AUTH_ENABLED", "false");
         expect(isAuthEnabled()).toBe(false);
+    });
+
+    it("defaults dataDir to /tmp/foyer unless FOYER_DATA_DIR is set", () => {
+        vi.stubEnv("FOYER_DATA_DIR", undefined);
+        expect(dataDir()).toBe("/tmp/foyer");
+
+        vi.stubEnv("FOYER_DATA_DIR", "/var/lib/foyer");
+        expect(dataDir()).toBe("/var/lib/foyer");
     });
 });
