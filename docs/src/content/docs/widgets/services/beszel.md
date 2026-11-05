@@ -5,9 +5,9 @@ description: Beszel Widget Configuration
 
 Learn more about [Beszel](https://github.com/henrygd/beszel)
 
-The widget has two modes, a single system with detailed info if `systemId` is provided, or an overview of all systems if `systemId` is not provided.
+The widget shows a single system with detailed info if `systemId` is provided, or an overview of all systems if `systemId` is not provided.
 
-The `systemID` is the `id` field on the collections page of Beszel under the PocketBase admin panel. You can also use the 'nice name' from the Beszel UI.
+The `systemId` is the `id` field on the collections page of Beszel under the PocketBase admin panel. You can also use the 'nice name' from the Beszel UI.
 
 A "superuser" is currently required to access the data from the Beszel API.
 

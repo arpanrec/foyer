@@ -57,7 +57,7 @@ const config = defineConfig({
                 path: "src/app/**",
                 instructions: text(
                     "This is the Next.js App Router. A change must not add a `src/pages/` route, a middleware file or",
-                    "a `.js` or `.jsx` source file. An API endpoint is a one-line `route.ts` plus a `handler.ts` that",
+                    "a `.js` or `.jsx` source file. An API endpoint is a short `route.ts` plus a `handler.ts` that",
                     "exports `withAuth(handler)`. Credentials must never reach the browser; every call to a backend",
                     "service goes through the server."
                 ),
@@ -94,7 +94,7 @@ const config = defineConfig({
             {
                 path: "docs/**",
                 instructions: text(
-                    "Docs show config as TypeScript object literals, and describe only what is present now, without",
+                    "Docs show config as JSONC with quoted keys, and describe only what is present now, without",
                     'history such as "previously" or "no longer". Check that examples match the option names in the',
                     "code."
                 ),

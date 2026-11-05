@@ -3,7 +3,7 @@ title: Settings
 description: Service Configuration
 ---
 
-The `settings` member of the [config file](/configs/) holds application level options. This page writes it as the content of `settings.jsonc.njk`, which the config file includes, and the snippets on this page are members of that object. The `settings` part of the [schema](/configs/#schema) lists every setting on this page and nothing else, so an editor that checks the config against it flags a misspelled or unknown key:
+The `settings` member of the [config file](/configs/) holds application level options. This page writes it as the content of `settings.jsonc.njk`, which the config file includes, and the snippets on this page are members of that object. The `settings` part of the [schema](/configs/#schema) lists the settings Foyer reads and nothing else, so an editor that checks the config against it flags a misspelled or unknown key:
 
 ```jsonc
 {
@@ -71,7 +71,7 @@ and then reference that image:
 
 ### Background Opacity & Filters
 
-You can specify filters to apply over your background image for blur, saturation and brightness as well as opacity to blend with the background color. The first three filter settings use tailwind CSS classes, see notes below regarding the options for each. You do not need to specify all options.
+You can specify filters to apply over your background image for blur, saturation and brightness as well as opacity to blend with the background color. The `blur`, `saturate` and `brightness` settings use tailwind CSS classes, see notes below regarding the options for each. You do not need to specify all options.
 
 ```jsonc
 "background": {
@@ -466,7 +466,7 @@ By default the feature is disabled
 
 ## Header Style
 
-There are currently 4 options for header styles, you can see each one below.
+You can pick one of the header styles below.
 
 <img width="1000" alt="underlined" src="/assets/settings_header_style_underlined.png">
 

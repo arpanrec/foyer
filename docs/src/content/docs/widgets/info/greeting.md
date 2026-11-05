@@ -16,4 +16,4 @@ This allows you to display simple text, can be configured like so:
 ]
 ```
 
-Valid text sizes are `4xl`, `3xl`, `2xl`, `xl`, `md`, `sm`, `xs`.
+Valid text sizes are `4xl`, `3xl`, `2xl`, `xl`, `lg`, `md`, `sm`, `xs`.

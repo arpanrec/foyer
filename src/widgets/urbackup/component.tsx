@@ -14,7 +14,7 @@ const Status = Object.freeze({
 
 function hasRecentBackups(client: UrbackupClient, maxDays?: number) {
     const days = maxDays || 3;
-    const diffTime = days * 24 * 60 * 60; // 7 days
+    const diffTime = days * 24 * 60 * 60; // in seconds
     const recentFile = client.lastbackup > Date.now() / 1000 - diffTime;
     const recentImage =
         client.image_not_supported || client.image_disabled || client.lastbackup_image > Date.now() / 1000 - diffTime;

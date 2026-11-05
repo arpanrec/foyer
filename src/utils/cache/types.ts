@@ -14,7 +14,7 @@ export type CacheArtifactType =
     // an address the server allowed itself, or a third party, to fetch through /api/icon-proxy
     | "image-allowlist";
 
-// Defaults for one artifact type. Only `ttlMs` is applied; the rest is the shape a future cache reads.
+// Defaults for one artifact type. Only `ttlMs` is applied; nothing reads the rest.
 export interface CachePolicy {
     // Used when a load does not give a TTL
     ttlMs?: number | undefined;
@@ -41,9 +41,9 @@ export interface CacheLoadOptions<T = unknown> {
     // What the debug log shows for this entry instead of its key. A key can hold anything, a secret included, so a caller
     // whose key does gives a label without it.
     label?: string | undefined;
-    // How long a loader that returned nothing or threw is remembered. Not applied yet.
+    // How long a loader that returned nothing or threw is remembered. Not applied.
     failureTtlMs?: number | undefined;
-    // Serve the expired value when the loader fails. Not applied yet.
+    // Serve the expired value when the loader fails. Not applied.
     staleOnError?: boolean | undefined;
 }
 

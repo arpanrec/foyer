@@ -16,7 +16,7 @@ export default defineConfig({
         starlight({
             title: "Foyer",
             description:
-                "A modern, fast, secure, fully proxied, highly customizable application dashboard with integrations for over 100 services.",
+                "A modern, fast, secure, fully proxied, highly customizable application dashboard with integrations for many services.",
             logo: {
                 light: "./src/assets/banner_light@2x.webp",
                 dark: "./src/assets/banner_dark@2x.webp",

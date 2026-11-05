@@ -5,7 +5,7 @@ description: Azure DevOps Widget Configuration
 
 Learn more about [Azure DevOps](https://azure.microsoft.com/en-us/products/devops).
 
-This widget has 2 functions:
+This widget has these functions:
 
 1. Pipelines: checks if the relevant pipeline is running or not, and if not, reports the last status.<br>
    Allowed fields: `["result", "status"]`.

@@ -358,7 +358,7 @@ export function cleanServiceGroups(groups: RawServiceGroupInput[]): CleanedServi
             }
             cleanedService.widgets = cleanedService.widgets.map((widgetData: RawWidgetConfig, index) => {
                 // whitelisted set of keys to pass to the frontend
-                // alphabetical, grouped by widget(s)
+                // grouped by widget(s)
                 const {
                     // all widgets
                     fields,
@@ -376,7 +376,7 @@ export function cleanServiceGroups(groups: RawServiceGroupInput[]): CleanedServi
                     // beszel
                     systemId,
 
-                    // calendar
+                    // calendar (tracearr reads view too)
                     firstDayInWeek,
                     integrations,
                     maxEvents,
@@ -402,7 +402,7 @@ export function cleanServiceGroups(groups: RawServiceGroupInput[]): CleanedServi
                     enableLeechProgress,
                     enableLeechSize,
 
-                    // diskstation
+                    // diskstation, qnap
                     volume,
 
                     // dispatcharr
@@ -431,7 +431,8 @@ export function cleanServiceGroups(groups: RawServiceGroupInput[]): CleanedServi
                     // frigate
                     enableRecentEvents,
 
-                    // authentik, beszel, glances, immich, komga, mealie, netalertx, pihole, pfsense, speedtest
+                    // authentik, beszel, fileflows, glances, gluetun, grafana, immich, jellyfin, komga, mealie,
+                    // netalertx, pfsense, pihole, pulse, speedtest, vikunja, wgeasy
                     version,
 
                     // glances
@@ -499,7 +500,7 @@ export function cleanServiceGroups(groups: RawServiceGroupInput[]): CleanedServi
                     // prometheusmetric
                     metrics,
 
-                    // proxmox
+                    // proxmox, technitium
                     node,
 
                     // proxmoxbackupserver
@@ -508,7 +509,7 @@ export function cleanServiceGroups(groups: RawServiceGroupInput[]): CleanedServi
                     // qui
                     instance,
 
-                    // releases
+                    // releases (livestreamer reads collapseAfter too)
                     collapseAfter,
                     showSourceIcon,
 
