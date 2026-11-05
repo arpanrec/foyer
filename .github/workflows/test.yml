@@ -32,7 +32,18 @@ jobs:
 
             - run: pnpm install --frozen-lockfile
             # Run Vitest directly so `--shard` is parsed as an option
-            - run: pnpm -s exec vitest run --coverage --shard ${{ matrix.shard }}/4 --pool forks
+            - run: >-
+                  pnpm -s exec vitest run --coverage --shard ${{ matrix.shard }}/4 --pool forks
+                  --reporter=default --reporter=junit --outputFile.junit=test-results/vitest-junit.xml
+            - name: Upload test results to Codecov
+              if: ${{ !cancelled() }}
+              uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+              with:
+                  token: ${{ secrets.CODECOV_TOKEN }}
+                  report_type: test_results
+                  files: ./test-results/vitest-junit.xml
+                  flags: vitest-shard-${{ matrix.shard }}
+                  name: vitest-shard-${{ matrix.shard }}
             - name: Upload coverage reports to Codecov
               uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
               with:
