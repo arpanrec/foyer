@@ -78,7 +78,7 @@ An include path that does not start with `/` is relative to the template that na
                 "widget": {
                     "type": "jellyfin",
                     "url": "http://server-a.lan:8096",
-                    "key": "{{ FOYER_VAR_JELLYFIN_KEY }}",
+                    "key": {{ FOYER_VAR_JELLYFIN_KEY | dump }},
                 },
             },
         },
@@ -175,7 +175,7 @@ The `layout` keys use the same names, and nested groups nest under their parent'
 }
 ```
 
-A `layout` key that matches no group raises no error: Foyer shows it as an empty group of its own. After a group is renamed, the old key appears as an empty group and the renamed group falls back to the default placement, off its tab. Rename the group in its services file and its `layout` key in the same edit.
+A `layout` key that matches no group raises no error. A key that holds only settings, such as `"style"` or `"tab"`, is not shown; one that holds nested group keys, like `Machines` above, still shows up as an empty group. After a group is renamed, the renamed group loses its `layout` settings and falls back to the default placement, off its tab. Rename the group in its services file and its `layout` key in the same edit.
 
 ## Shared values and macros
 

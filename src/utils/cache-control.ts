@@ -3,10 +3,13 @@ import type { IncomingHttpHeaders } from "node:http";
 // The directive names in a Cache-Control or Pragma value, lowercased, without their arguments
 function directives(value: string | string[] | undefined): string[] {
     const joined = Array.isArray(value) ? value.join(",") : (value ?? "");
-    return joined
-        .split(",")
-        .map((part) => part.split("=")[0]!.trim().toLowerCase())
-        .filter(Boolean);
+    return (
+        joined
+            .split(",")
+            // a directive's argument starts at its first "=", as in max-age=0 or no-cache="set-cookie"
+            .map((part) => part.replace(/=.*/s, "").trim().toLowerCase())
+            .filter(Boolean)
+    );
 }
 
 // True when the client asked for a response that is not served from a cache without checking with the origin first:

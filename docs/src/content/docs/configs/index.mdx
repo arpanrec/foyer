@@ -162,6 +162,8 @@ Foyer loads the config the first time a page or API call needs it, and keeps it 
 
 The reload button in the dashboard footer loads the config again without a restart, and reads every template it includes again. When the new config loads cleanly, Foyer replaces the old one and the page reloads. When it has an error, a popup says the config is broken and shows the reason, and Foyer keeps the config it already had. When a reload, a restart or a fixed file loads a different config, other open dashboards reload themselves the next time their tab gets focus.
 
+With [`FOYER_DISK_CACHE`](/configs/environment-variables/#cache) set to `true`, the loaded config is kept on disk with the rest of the cache, so a restart serves it without reading the config file again. A change to the file, to a template it includes or to a `FOYER_VAR_` variable it prints, made while Foyer was stopped, shows up only after the reload button loads the config again.
+
 ## Schema
 
 The `@arpanrec/foyer` package ships a JSON Schema of the rendered config at `@arpanrec/foyer/schema.json`. An editor that reads JSONC can check a config against it through a `$schema` key, which Foyer ignores:

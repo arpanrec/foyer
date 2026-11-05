@@ -54,3 +54,4 @@ next-env.d.ts
 
 # foyer command, built by pnpm build:cli
 /dist/
+/data

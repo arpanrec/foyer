@@ -521,6 +521,17 @@ describe("utils/proxy/http httpProxy", () => {
         expect(errorData.error.message).toBe("boom");
         expect(errorData.error.url).toBe("example.com (see logs for details)");
     });
+
+    it("logs a failure that is not an Error as text, with the host only", async () => {
+        // a request can fail with a value that has no message, such as a bare string
+        state.error = "socket hang up" as unknown as Error;
+        const httpMod = await import("@/utils/proxy/http");
+
+        const [status] = await httpMod.httpProxy("http://example.com/?apikey=secret");
+
+        expect(status).toBe(500);
+        expect(logger.error).toHaveBeenCalledWith("Error calling %s: %s", "example.com", "socket hang up");
+    });
 });
 
 describe("utils/proxy/http publicOnly", () => {
