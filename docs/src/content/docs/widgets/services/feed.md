@@ -136,7 +136,7 @@ Aggregators such as Hacker News and Lobsters link each item to the article it po
 
 Images are taken from the feed's `media:thumbnail` / `media:content` tags or image enclosures, falling back to the first image in the item's content. Some feeds do not include images at all.
 
-Images are downloaded by the Foyer server and kept in Foyer's memory, so your browser never contacts the feed's host. Foyer keeps up to 1000 images and drops the one used least recently when it needs room. Images are fetched only from public hosts: an image address that points at your local network is refused, even when the feed itself is local. Images have no size limit, and a download is cut off after 30 seconds without data. Foyer identifies itself with a `User-Agent` of `foyer/<version>` for feeds and images, and in the format Reddit asks for on Reddit hosts, because Reddit refuses requests without one. Feeds that link full-size originals can be slow to load the first time; set `images: false` for those.
+Images are downloaded by the Foyer server and kept in Foyer's cache, so your browser never contacts the feed's host. Images are fetched only from public hosts: an image address that points at your local network is refused, even when the feed itself is local. Images have no size limit, and a download is cut off after 30 seconds without data. Foyer identifies itself with a `User-Agent` of `foyer/<version>` for feeds and images, and in the format Reddit asks for on Reddit hosts, because Reddit refuses requests without one. Feeds that link full-size originals can be slow to load the first time; set `images: false` for those.
 
 ## YouTube Shorts
 

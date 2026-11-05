@@ -1,5 +1,4 @@
 import cache from "@/utils/cache";
-import { loggableUrl } from "@/utils/loggable-url";
 import createLogger from "@/utils/logger";
 import { httpProxy } from "@/utils/proxy/http";
 import { foyerUserAgent } from "@/utils/proxy/user-agent";
@@ -113,8 +112,6 @@ function keepFor(stored: Stored) {
 // a younger copy, and an older one is downloaded again. When that fails, the old copy still serves, and the failure is
 // remembered so the next callers do not wait on a host that is down. A failure with no copy is remembered the same way.
 async function cachedImage(url: string, maxAgeSeconds: number, publicOnly = false): Promise<IconResult | undefined> {
-    // the URL may carry a token, so the log shows it without its query
-    const label = loggableUrl(url);
     const load = (previous?: StoredImage) => async (): Promise<Stored> => {
         try {
             const fetched = await fetchImage(url, publicOnly);
@@ -122,12 +119,12 @@ async function cachedImage(url: string, maxAgeSeconds: number, publicOnly = fals
         } catch (error) {
             // httpProxy rejects with [status, error]
             logger.warn("Icon request to %s failed", new URL(url).host);
-            logger.debug("Icon request to %s failed: %o", label, error);
+            logger.debug("Icon request to %s failed: %o", url, error);
         }
         const retryAfter = Date.now() + FAILURE_MS;
         return previous ? { ...previous, retryAfter } : { failed: true, retryAfter };
     };
-    const options = { type: "image", ttlMs: keepFor, label } as const;
+    const options = { type: "image", ttlMs: keepFor } as const;
 
     const stored = await cache.getOrFetch<Stored>(url, load(), options);
     if (!stored || isFailure(stored)) return undefined;

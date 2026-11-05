@@ -1,3 +1,5 @@
+import { PHASE_PRODUCTION_BUILD } from "next/constants";
+
 import cache from "@/utils/cache";
 import {
     CUSTOM_FILE_MEMBERS,
@@ -28,7 +30,7 @@ async function loadAndKeep(): Promise<LoadedConfig> {
 }
 
 async function currentStore(): Promise<LoadedConfig> {
-    if (process.env["NEXT_PHASE"] === "phase-production-build") return EMPTY;
+    if (process.env["NEXT_PHASE"] === PHASE_PRODUCTION_BUILD) return EMPTY;
     // A loader that returns undefined only reads the cache
     const stored = await cache.getOrFetch<LoadedConfig>(CACHE_KEY, async () => undefined, { label: "config" });
     if (stored) return stored;

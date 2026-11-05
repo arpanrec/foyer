@@ -1,7 +1,7 @@
-// Disk cache store, built on cacheable's Cacheable class with a file store as its `secondary` layer. It has the same
-// default export as memory.ts, a CacheStore, so a caller switches stores by changing one import. Entries are written to
-// disk as they are stored, so they outlive a restart; Cacheable keeps the entries it has read or written in memory too,
-// and `entries`, `keys`, `size` and `stats` read the folder.
+// Disk cache store, built on cacheable's Cacheable class with a file store as its `secondary` layer, implementing the
+// CacheStore interface in types.ts. Entries are written to disk as they are stored, so they outlive a restart;
+// Cacheable keeps the entries it has read or written in memory too, and `entries`, `keys`, `size` and `stats` read the
+// folder.
 
 import { createHash } from "node:crypto";
 import { EventEmitter } from "node:events";
@@ -9,7 +9,7 @@ import { mkdir, readFile, readdir, rename, stat, unlink, writeFile } from "node:
 import { join } from "node:path";
 import { deserialize, serialize } from "node:v8";
 
-import { Cacheable, Keyv } from "cacheable";
+import { Cacheable, createKeyv, Keyv } from "cacheable";
 
 import type {
     CacheArtifactType,
@@ -19,6 +19,7 @@ import type {
     CacheStats,
     CacheStore,
 } from "@/utils/cache/types";
+import { dataDir } from "@/utils/env";
 import { errorMessage } from "@/utils/error";
 import createLogger from "@/utils/logger";
 import warnOnce from "@/utils/warn-once";
@@ -192,7 +193,7 @@ export class FileStore extends EventEmitter {
     }
 }
 
-const DISK_DIR = "/tmp/foyer/cache";
+const DISK_DIR = join(dataDir(), "cache");
 const UNTYPED = "untyped";
 const SEPARATOR = "\u0000";
 
@@ -220,6 +221,8 @@ export class DiskCacheStore implements CacheStore {
     constructor(dir: string = DISK_DIR) {
         this.files = new FileStore(dir);
         this.cache = new Cacheable({
+            // Values are stored as they are, never cloned, so a caller must not change what it gets back
+            primary: createKeyv({ useClone: false }),
             secondary: new Keyv({
                 store: this.files as never,
                 serialize: passThrough,
@@ -239,24 +242,27 @@ export class DiskCacheStore implements CacheStore {
         const id = recordKey(key, type);
         const label = `${type ?? UNTYPED} ${options.label ?? key}`;
 
-        if (!refresh) {
-            const found = await this.cache.get<T>(id);
-            if (found !== undefined) {
-                logger.debug("Cache disk hit: %s", label);
-                return found;
-            }
-        }
-
+        // Checked and registered synchronously, with no await in between, so two concurrent calls for the same key
+        // cannot both miss this and each start their own disk read or load.
         const running = this.loading.get(id);
         if (running) {
             logger.debug("Cache load shared: %s", label);
             return (await running) as T | undefined;
         }
 
-        logger.debug(refresh ? "Cache refresh: %s" : "Cache miss: %s", label);
-
         const run: { promise?: Promise<T | undefined> } = {};
         const loaded = (run.promise = (async () => {
+            if (!refresh) {
+                // getRaw, not get, so expiry is checked against this codebase's own now >= expires convention:
+                // Cacheable's own primary-layer check treats the exact expiry millisecond as still live.
+                const raw = await this.cache.getRaw<T>(id);
+                if (raw?.value !== undefined && (raw.expires === undefined || raw.expires > Date.now())) {
+                    logger.debug("Cache disk hit: %s", label);
+                    return raw.value;
+                }
+            }
+
+            logger.debug(refresh ? "Cache refresh: %s" : "Cache miss: %s", label);
             const value = await load();
             if (value === undefined) return undefined;
             // a key that was deleted or cleared while it loaded is not brought back by the old load
@@ -326,7 +332,6 @@ export class DiskCacheStore implements CacheStore {
         return (await this.list(type)).length;
     }
 
-    // Only ttlMs is applied; maxEntries is ignored because the disk store has no entry limit
     async setPolicy(type: CacheArtifactType, policy: CachePolicy): Promise<void> {
         this.policies.set(type, policy);
     }

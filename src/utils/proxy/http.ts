@@ -9,7 +9,6 @@ import { http, https, type FollowOptions } from "follow-redirects";
 import cache from "@/utils/cache";
 import { getEnv } from "@/utils/env";
 import { errorMessage } from "@/utils/error";
-import { loggableUrl } from "@/utils/loggable-url";
 import createLogger from "@/utils/logger";
 import { sanitizeErrorURL } from "@/utils/proxy/api-helpers";
 import { addCookieToJar, setCookieHeader } from "@/utils/proxy/cookie-jar";
@@ -88,7 +87,8 @@ function handleRequest(requestor: Requestor, url: string | URL, params: HttpProx
 
                 // zlib errors
                 unzip.on("error", (e: Error) => {
-                    logger.error("Error decompressing the response from %s: %s", loggableUrl(url), e.message);
+                    logger.error("Error decompressing the response from %s: %s", new URL(url).host, e.message);
+                    logger.debug("Error decompressing the response from %s: %s", url, e.message);
                     responseContent = response; // fallback
                 });
                 response.pipe(unzip);
@@ -158,7 +158,7 @@ export async function cachedRequest(url: string, duration = 5, ua?: string): Pro
             }
             return data;
         },
-        { type: "response", ttlMs: duration * 1000 * 60, label: loggableUrl(url) }
+        { type: "response", ttlMs: duration * 1000 * 60 }
     );
 }
 
@@ -365,7 +365,9 @@ export async function httpProxy(url: string | URL, params: HttpProxyParams = {})
         return [status, contentType, data, responseHeaders, params];
     } catch (err) {
         const rawError = Array.isArray(err) ? err[1] : err;
-        logger.error("Error calling %s: %s", loggableUrl(constructedUrl), errorMessage(rawError) ?? String(rawError));
+        const message = errorMessage(rawError) ?? String(rawError);
+        logger.error("Error calling %s: %s", constructedUrl.host, message);
+        logger.debug("Error calling %s: %s", constructedUrl, message);
         logger.debug("%o", err);
         return [
             500,

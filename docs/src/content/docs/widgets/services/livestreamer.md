@@ -37,6 +37,6 @@ The widget refuses to load and shows an error if `channels` is missing or empty,
 
 ## Notes
 
-Channel information is fetched by foyer, not your browser, and cached in memory for 60 seconds. Avatars and stream previews are downloaded by foyer too and served from foyer: avatars are kept in memory for a day and previews for two minutes.
+Channel information is fetched by foyer, not your browser, and cached for 60 seconds. Avatars and stream previews are downloaded by foyer too and served from foyer: avatars are kept for a day and previews for two minutes.
 
 Twitch integration uses Twitch's public GraphQL endpoint and requires no API key or credentials. Because it uses Twitch's persisted GraphQL queries, it relies on Twitch maintaining those query hashes.

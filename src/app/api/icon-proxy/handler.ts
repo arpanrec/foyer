@@ -4,7 +4,6 @@ import { withAuth } from "@/utils/auth";
 import { sendIcon } from "@/utils/icon-response";
 import { DEFAULT_MAX_AGE_SECONDS, getRemoteImage } from "@/utils/icons";
 import { isImageUrlAllowed, isPublicOnlyImageUrl } from "@/utils/image-allowlist";
-import { loggableUrl } from "@/utils/loggable-url";
 import createLogger from "@/utils/logger";
 
 const logger = createLogger("iconProxy");
@@ -18,10 +17,8 @@ async function handler(req: ApiRequest, res: ApiResponse) {
 
     // Only addresses Foyer sent to the browser are fetched, and one that came from a feed or stream only from public hosts
     if (!(await isImageUrlAllowed(url))) {
-        logger.warn(
-            "Icon proxy refused %s, which is not an image address from the config or a widget",
-            loggableUrl(url)
-        );
+        logger.warn("Icon proxy refused an address that is not an image Foyer serves");
+        logger.debug("Icon proxy refused %s, which is not an image address from the config or a widget", url);
         return res.status(403).send({ error: "This address is not an image Foyer serves" });
     }
 

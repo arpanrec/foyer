@@ -10,16 +10,14 @@ export type CacheArtifactType =
     // logins, tokens and cookies for an upstream service
     | "session"
     // an upstream service's answer to a widget request
-    | "response";
+    | "response"
+    // an address the server allowed itself, or a third party, to fetch through /api/icon-proxy
+    | "image-allowlist";
 
-// Defaults for one artifact type. The limit counts entries, not bytes. `ttlMs` and `maxEntries` are applied; the rest
-// is the shape a future cache reads.
+// Defaults for one artifact type. Only `ttlMs` is applied; the rest is the shape a future cache reads.
 export interface CachePolicy {
     // Used when a load does not give a TTL
     ttlMs?: number | undefined;
-    // How many entries the type holds before the least recently used one is dropped, 0 for no limit. The default
-    // depends on the type.
-    maxEntries?: number | undefined;
     // How long a failed load is remembered, so it is not retried on every request
     failureTtlMs?: number | undefined;
 }
@@ -58,8 +56,7 @@ export interface CacheEntryInfo {
     value: unknown;
 }
 
-// What every cache backend offers. Every call returns a promise, so a backend that keeps entries on disk or in another
-// process answers the same calls as the in-memory `Cache`, and callers do not change when one replaces it.
+// What the cache backend (disk.ts) offers. Every call returns a promise.
 export interface CacheStore {
     // The cached value, or what `load` returns, stored for next time. A loader that returns undefined stores nothing,
     // and one that throws stores nothing and passes the error on. Callers that ask for the same missing key while it

@@ -17,6 +17,7 @@ This page lists every environment variable Foyer reads. Set runtime variables on
 | `HOSTNAME`                 | `::`                     | Address the server binds to. The Docker image falls back to `0.0.0.0` when it cannot bind to IPv6.                                                                                                                            |
 | `FOYER_BUILDTIME`          | none                     | Docker image only. The entrypoint sets it to the container start time. It is part of the config hash, so open dashboards reload after the container restarts.                                                                 |
 | `FOYER_APP_DIR`            | working directory        | Folder that holds `public/locales`. The `foyer` command sets it to the installed package; leave it unset otherwise.                                                                                                           |
+| `FOYER_DATA_DIR`           | `/tmp/foyer`             | Folder for Foyer's own on-disk state, `foyer.log` under `logs/` included. See [Logging](#logging). Foyer uses the path as written, so a relative path is read from the working directory; use an absolute path.               |
 | `PUID`, `PGID`             | `0`                      | Docker image only. User and group ID the server runs as. The entrypoint changes ownership of `/app/config` to match.                                                                                                          |
 
 ## Browser access
@@ -59,15 +60,21 @@ See [Model Context Protocol](/configs/mcp/) for the endpoint itself.
 
 ## Logging
 
-| Variable        | Default                    | Description                                                                                                                                                                                                                                                                                    |
-| --------------- | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `FOYER_LOG_DIR` | `<system temp>/foyer/logs` | Folder for `foyer.log`, created when missing. The default is `/tmp/foyer/logs` on Linux and in the Docker image, and the `foyer/logs` folder in the system temp folder elsewhere. Foyer uses the path as written, so a relative path is read from the working directory; use an absolute path. |
-| `LOG_LEVEL`     | `info`                     | Log level: `error`, `warn`, `info`, `http`, `verbose`, `debug` or `silly`, in any case. Any other value logs at `info` with a warning. See [Troubleshooting](/troubleshooting/).                                                                                                               |
-| `LOG_TARGETS`   | `both`                     | Where logs go: `stdout`, `file` (`foyer.log` in `FOYER_LOG_DIR`) or `both`, in any case. Any other value logs to both with a warning.                                                                                                                                                          |
+| Variable      | Default | Description                                                                                                                                                                      |
+| ------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `LOG_LEVEL`   | `info`  | Log level: `error`, `warn`, `info`, `http`, `verbose`, `debug` or `silly`, in any case. Any other value logs at `info` with a warning. See [Troubleshooting](/troubleshooting/). |
+| `LOG_TARGETS` | `both`  | Where logs go: `stdout`, `file` (`foyer.log` in `logs/` under `FOYER_DATA_DIR`) or `both`, in any case. Any other value logs to both with a warning.                             |
 
-Every server message goes through the same logger, config load errors included, so `LOG_TARGETS` and `LOG_LEVEL` apply to all of them. If Foyer cannot create or write to `FOYER_LOG_DIR`, cannot write to an existing `foyer.log` (for example one left by a container that ran with a different `PUID`), or `foyer.log` fails while the server runs, it logs a warning and writes to the console only.
+:::caution
+At `debug` level, Foyer logs the full address it called, including any API key, token or other secret carried in its
+query string or credentials, so a troubleshooting `foyer.log` can leak secrets. Turn `LOG_LEVEL` back to `info` once
+done, and treat a debug-level log file as sensitive: redact it before sharing it, for example when attaching it to an
+issue.
+:::
 
-The system temp folder is emptied on reboot, and in a container it goes away with the container. Set `FOYER_LOG_DIR` to a mounted folder of its own, such as `/app/logs`, to keep the log file; the config folder can then stay read-only. The user Foyer runs as (`PUID` in the Docker image) must be able to write there.
+`foyer.log` lives in `logs/` under [`FOYER_DATA_DIR`](#server) (`/tmp/foyer/logs` by default), created when missing. Every server message goes through the same logger, config load errors included, so `LOG_TARGETS` and `LOG_LEVEL` apply to all of them. If Foyer cannot create or write to that folder, cannot write to an existing `foyer.log` (for example one left by a container that ran with a different `PUID`), or `foyer.log` fails while the server runs, it logs a warning and writes to the console only.
+
+The default `/tmp/foyer` is emptied on reboot, and in a container it goes away with the container. Set `FOYER_DATA_DIR` to a mounted folder of its own, such as `/app/data`, to keep the log file across restarts; the config folder can then stay read-only. The user Foyer runs as (`PUID` in the Docker image) must be able to write there.
 
 Log files rotate automatically when they reach 10 MiB. Foyer keeps the current `foyer.log` and numbered rotated files (`foyer1.log`, `foyer2.log` and so on) up to a fixed limit, and removes the oldest rotated file when a new one is created.
 

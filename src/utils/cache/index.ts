@@ -1,7 +1,6 @@
-// The cache every caller imports. To change where the cache lives, change the import below to another store with the
-// same CacheStore interface: "@/utils/cache/memory", "@/utils/cache/disk" or "@/utils/cache/sqlite".
+// The cache every caller imports: the disk store, so entries outlive a restart.
 
-export { default } from "@/utils/cache/memory";
+export { default } from "@/utils/cache/disk";
 export type {
     CacheArtifactType,
     CacheEntryInfo,

@@ -437,14 +437,19 @@ describe("utils/proxy/http httpProxy", () => {
         state.response.headers["content-encoding"] = "gzip";
         state.response.body = Buffer.from("hello");
 
-        await httpMod.httpProxy("http://user:pass@example.com:8080/api/v2?apikey=secret&cmd=get#frag");
+        const url = "http://user:pass@example.com:8080/api/v2?apikey=secret&cmd=get#frag";
+        await httpMod.httpProxy(url);
 
         expect(logger.error).toHaveBeenCalledWith(
             "Error decompressing the response from %s: %s",
-            "http://example.com:8080/api/v2",
+            "example.com:8080",
             "bad gzip"
         );
-        expect(JSON.stringify(vi.mocked(logger.error).mock.calls)).not.toMatch(/secret|pass/);
+        expect(logger.debug).toHaveBeenCalledWith(
+            "Error decompressing the response from %s: %s",
+            new URL(url),
+            "bad gzip"
+        );
 
         vi.doUnmock("node:zlib");
     });

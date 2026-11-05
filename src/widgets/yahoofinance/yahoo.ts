@@ -1,6 +1,5 @@
 import cache from "@/utils/cache";
 import { errorMessage } from "@/utils/error";
-import { loggableUrl } from "@/utils/loggable-url";
 import createLogger from "@/utils/logger";
 import { httpProxy } from "@/utils/proxy/http";
 import type { Market, MarketConfig } from "@/widgets/yahoofinance/types";
@@ -80,7 +79,7 @@ async function fetchMarket(
                 {
                     type: "response",
                     ttlMs: Math.min(cacheMinutes * 60 * 1000, MAX_TIMER_DELAY_MS),
-                    label: loggableUrl(url),
+                    label: url,
                 }
             )) ?? uncached;
         const result = body?.chart?.result?.[0];
