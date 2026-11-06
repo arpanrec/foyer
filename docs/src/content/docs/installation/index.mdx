@@ -20,7 +20,7 @@ Please note that when using features such as widgets, Foyer can access personal 
 
 ### `FOYER_ALLOWED_HOSTS`
 
-To access foyer via a URL other than `localhost`, set the required environment variable <code>FOYER_ALLOWED_HOSTS</code>. The setting helps prevent certain kinds of attacks when retrieving data from the foyer API proxy.
+Foyer only answers requests whose Host header is on its allowlist. To reach foyer through any other host, including `localhost` on a port other than `PORT`, add that host to the <code>FOYER_ALLOWED_HOSTS</code> environment variable. The setting helps prevent certain kinds of attacks when retrieving data from the foyer API proxy.
 
 The value is a comma-separated list of allowed hosts (sometimes with the port) that can host your foyer install. See the [docker](/installation/docker/), [npm](/installation/npm/) and [source](/installation/source/) installation pages for more information about where / how to set the variable.
 
