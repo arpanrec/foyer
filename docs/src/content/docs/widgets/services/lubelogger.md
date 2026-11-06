@@ -5,7 +5,7 @@ description: LubeLogger Widget Configuration
 
 Learn more about [LubeLogger](https://github.com/hargata/lubelog) (v1.3.7 or higher is required).
 
-The widget comes in two 'flavors', one shows data for all vehicles or for just a specific vehicle with the `vehicleID` parameter.
+The widget shows data for all vehicles, or for just a specific vehicle with the `vehicleID` parameter.
 
 Allowed fields: `["vehicles", "serviceRecords", "reminders"]`.
 For the single-vehicle version: `["vehicle", "serviceRecords", "reminders", "nextReminder"]`.

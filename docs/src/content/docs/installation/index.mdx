@@ -20,9 +20,9 @@ Please note that when using features such as widgets, Foyer can access personal 
 
 ### `FOYER_ALLOWED_HOSTS`
 
-There is one required environment variable to access foyer via a URL other than `localhost`, <code>FOYER_ALLOWED_HOSTS</code>. The setting helps prevent certain kinds of attacks when retrieving data from the foyer API proxy.
+Foyer only answers requests whose Host header is on its allowlist. To reach foyer through any other host, including `localhost` on a port other than `PORT`, add that host to the <code>FOYER_ALLOWED_HOSTS</code> environment variable. The setting helps prevent certain kinds of attacks when retrieving data from the foyer API proxy.
 
-The value is a comma-separated (no spaces) list of allowed hosts (sometimes with the port) that can host your foyer install. See the [docker](/installation/docker/), [npm](/installation/npm/) and [source](/installation/source/) installation pages for more information about where / how to set the variable.
+The value is a comma-separated list of allowed hosts (sometimes with the port) that can host your foyer install. See the [docker](/installation/docker/), [npm](/installation/npm/) and [source](/installation/source/) installation pages for more information about where / how to set the variable.
 
 `localhost:3000`, `127.0.0.1:3000` and `[::1]:3000` are always included (the port follows `PORT`), but you can add a domain or IP address to this list to allow that host such as `FOYER_ALLOWED_HOSTS=foyer.arpanrec.com,192.168.1.2:1234`, etc.
 
@@ -31,7 +31,7 @@ If you are seeing errors about host validation, check the foyer logs and ensure 
 This can be disabled by setting `FOYER_ALLOWED_HOSTS` to `*` but this is not recommended. Public deployments must rely on a reverse proxy (and/or VPN) that enforces authentication, TLS, and unexpected Host headers; the built-in host check is a best-effort guard for local setups and is not a substitute for edge protections.
 
 :::note
-The sign-in pages (`/auth/*`) are exempt from this check. They expose only the public theme and title settings. The NextAuth routes (`/api/auth/*`) enforce it in their handler.
+The sign-in pages (`/auth/*`) are exempt from this check. They expose only the public theme, color, title and background settings. The NextAuth routes (`/api/auth/*`) enforce it in their handler.
 :::
 
 ### Security & Authentication

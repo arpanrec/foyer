@@ -1,7 +1,8 @@
 import { createContext, useContext } from "react";
 import type { Middleware, SWRHook } from "swr";
 
-// False below a collapsed service group; every SWR hook in that subtree stops fetching and polling.
+// False below a collapsed service group or a card outside the viewport; every SWR hook in that subtree stops fetching
+// and polling.
 export const WidgetVisibilityContext = createContext(true);
 
 // Passing a null key stops the first fetch and all polling. The cache keeps the data, and SWR

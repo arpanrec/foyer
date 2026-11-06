@@ -10,7 +10,7 @@ The Kubernetes connectivity has the following requirements:
 - An Ingress controller
     - Optionally: Gateway-API
 
-The Kubernetes connection is configured in the `kubernetes` member of the [config file](/configs/), written on this page as `kubernetes.jsonc.njk`. There are 3 modes to choose from:
+The Kubernetes connection is configured in the `kubernetes` member of the [config file](/configs/), written on this page as `kubernetes.jsonc.njk`. The `mode` option picks how Foyer connects:
 
 - **disabled** - disables kubernetes connectivity
 - **default** - uses the default kubeconfig [resolution](https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/)
@@ -178,7 +178,7 @@ To enable Gateway API HttpRoute update `kubernetes.jsonc.njk` to include:
 
 ## Caveats
 
-Similarly to Docker service discovery, there currently is no rigid ordering to discovered services and discovered services will be displayed above those specified in the `services` member.
+As with Docker service discovery, a group sorts its services by `weight` and then by name. A discovered service has a weight of 0 unless its `weight` annotation sets another, so by default it is displayed above those specified in the `services` member.
 
 ## Adding extra configuration files
 

@@ -192,7 +192,7 @@ describe("components/quicklaunch", () => {
             await new Promise((r) => setTimeout(r, 350));
         });
 
-        // reopen by "typing" a character, the way pages/index does
+        // reopen by "typing" a character, the way the dashboard does
         fireEvent.click(screen.getByTestId("seed-key"));
 
         expect(input).toHaveValue("g");

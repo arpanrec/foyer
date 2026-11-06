@@ -7,7 +7,7 @@ Learn more about [qui](https://github.com/autobrr/qui).
 
 Generate an API key in qui under **Settings → API Keys**.
 
-The widget has two modes:
+The widget has these modes:
 
 - **Aggregated (default):** omit `instance` to show combined stats across all qBittorrent instances monitored by qui.
 - **Per-instance:** set `instance` to the qui ID (visible in the qui UI) to show just that one.

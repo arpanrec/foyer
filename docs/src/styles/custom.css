@@ -1,6 +1,6 @@
 /*
  * Foyer docs theme. A blurred landscape sits behind every page, and the header and sidebars float over it on
- * translucent, blurred panels. Text is white in both colour modes; the mode changes only the panel tint, so the light
+ * translucent, blurred panels. Text is white in light and dark mode; the mode changes only the panel tint, so the light
  * theme reuses Starlight's dark palette.
  */
 

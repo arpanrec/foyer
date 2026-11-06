@@ -1,9 +1,9 @@
 ---
 title: Environment Variables
-description: Every environment variable Foyer reads
+description: The environment variables that configure Foyer
 ---
 
-This page lists every environment variable Foyer reads. Set runtime variables on the container (`environment:` in Docker Compose, `-e` in `docker run`) or in the shell that starts `pnpm start`. Variables that start with `FOYER_` are read at runtime unless the table says otherwise.
+This page lists the environment variables that configure Foyer. Set runtime variables on the container (`environment:` in Docker Compose, `-e` in `docker run`) or in the shell that starts `pnpm start`. Variables that start with `FOYER_` are read at runtime unless the table says otherwise.
 
 ## Server
 
@@ -14,7 +14,7 @@ This page lists every environment variable Foyer reads. Set runtime variables on
 | `FOYER_EXTERNAL_URL`       | none                     | Absolute URL users open Foyer at, including scheme and port when needed. Required when [authentication](/installation/#security--authentication) is enabled.                                                                                                                                |
 | `FOYER_PROXY_DISABLE_IPV6` | `false`                  | Set to `true` to make requests from widget proxies use IPv4 only.                                                                                                                                                                                                                           |
 | `PORT`                     | `3000`                   | Port the server listens on. Also used to build the default allowed hosts (`localhost:<port>`, `127.0.0.1:<port>`, `[::1]:<port>`).                                                                                                                                                          |
-| `HOSTNAME`                 | `::`                     | Address the server binds to. The Docker image falls back to `0.0.0.0` when it cannot bind to IPv6.                                                                                                                                                                                          |
+| `HOSTNAME`                 | `::`                     | Docker image only. Address the server binds to. The entrypoint falls back to `0.0.0.0` when it cannot bind to IPv6. `foyer server` ignores it and takes `--hostname`, and `pnpm start` ignores it too.                                                                                      |
 | `FOYER_BUILDTIME`          | none                     | Docker image only. The entrypoint sets it to the container start time. It is part of the config hash, so open dashboards reload after the container restarts.                                                                                                                               |
 | `FOYER_APP_DIR`            | working directory        | Folder that holds `public/locales`. The `foyer` command sets it to the installed package; leave it unset otherwise.                                                                                                                                                                         |
 | `FOYER_DATA_DIR`           | `/tmp/foyer`             | Folder for Foyer's own on-disk state: `foyer.log` under `logs/`, see [Logging](#logging), and the cache under `cache/` when `FOYER_DISK_CACHE` is `true`, see [Cache](#cache). Foyer uses the path as written, so a relative path is read from the working directory; use an absolute path. |
@@ -25,10 +25,10 @@ This page lists every environment variable Foyer reads. Set runtime variables on
 
 Foyer tells the browser to load from Foyer's own origin and nothing else, with a `Content-Security-Policy` header on every page, the sign-in page and the API. Icons, backgrounds, favicons, feed and livestream images and camera streams all reach the browser through the Foyer server, so a browser that cannot reach the internet still shows the full dashboard. The policy makes a page that tries to load something from another host fail in the browser instead of waiting for a connection.
 
-| Variable              | Default   | Description                                                                                                                                                                                                                                                                  |
-| --------------------- | --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `FOYER_CSP`           | `enforce` | `enforce` blocks anything from another host. `report-only` sends the policy as a report-only header, which logs violations in the browser console but blocks nothing. `off` sends no policy. Any other value is treated as `enforce`, with a warning.                        |
-| `FOYER_CSP_FRAME_SRC` | none      | Space or comma separated sources the [iFrame widget](/widgets/services/iframe/) may load, such as `https://grafana.lan https://*.example.com:8443`. Without it a page can frame only Foyer itself. An entry with a quote, a comma or a semicolon is ignored, with a warning. |
+| Variable              | Default   | Description                                                                                                                                                                                                                                                                                                  |
+| --------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `FOYER_CSP`           | `enforce` | `enforce` blocks anything from another host. `report-only` sends the policy as a report-only header, which logs violations in the browser console but blocks nothing. `off` sends no policy. Any other value is treated as `enforce`, with a warning.                                                        |
+| `FOYER_CSP_FRAME_SRC` | none      | Space or comma separated sources the [iFrame widget](/widgets/services/iframe/) may load, such as `https://grafana.lan https://*.example.com:8443`. Without it a page can frame only Foyer itself. An entry that is not a valid source, such as one with a quote or a semicolon, is ignored, with a warning. |
 
 The policy also stops JavaScript from `customJs` and styles from `customCss` that load a script, font or image from another host. Put such files on Foyer's own origin, for example in `public/`. Links that a user clicks, such as a service's `href` or a search, are navigation and are not affected.
 
@@ -44,7 +44,7 @@ Setting up sign-in is described in [Security & Authentication](/installation/#se
 | `FOYER_OIDC_ISSUER`        | none                      | OIDC issuer URL. Setting the issuer, client ID and client secret switches sign-in from password to OIDC.                             |
 | `FOYER_OIDC_CLIENT_ID`     | none                      | OIDC client ID.                                                                                                                      |
 | `FOYER_OIDC_CLIENT_SECRET` | none                      | OIDC client secret.                                                                                                                  |
-| `FOYER_OIDC_NAME`          | none                      | Name shown on the OIDC sign-in button.                                                                                               |
+| `FOYER_OIDC_NAME`          | `Foyer OIDC`              | Name shown on the OIDC sign-in button.                                                                                               |
 | `FOYER_OIDC_SCOPE`         | `openid email profile`    | Scopes requested from the OIDC provider.                                                                                             |
 | `FOYER_OIDC_AUTO_LOGIN`    | `false`                   | Set to `true` to send unauthenticated visitors straight to the OIDC provider. `/auth/signin?autologin=0` still shows the login page. |
 | `NEXTAUTH_SECRET`          | `FOYER_AUTH_SECRET`       | Takes precedence over `FOYER_AUTH_SECRET` when set.                                                                                  |

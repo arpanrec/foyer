@@ -66,7 +66,7 @@ describe("widgets/pihole/component", () => {
 
         expect(container.querySelectorAll(".service-block")).toHaveLength(3);
 
-        // common.number/common.percent are formatted by the test i18n stub in vitest.setup.js
+        // common.number/common.percent are formatted by the test i18n stub in vitest.setup.ts
         expect(screen.getByText("99")).toBeInTheDocument();
         expect(screen.getByText("123")).toBeInTheDocument();
         expect(screen.getByText("5 (12.3)")).toBeInTheDocument();

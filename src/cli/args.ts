@@ -26,7 +26,7 @@ const LOOPBACK_HOSTS = ["localhost", "127.0.0.1", "::1"];
 
 // What `foyer server` prints once it listens: a URL the server answers, which for a wildcard bind is localhost, since
 // the host check rejects 0.0.0.0. An IPv6 address goes in brackets, as it does in the Host header. When the URL needs
-// an entry in --allowed-hosts, which the host check reads without trimming, the message says so.
+// an entry in --allowed-hosts, the message says so.
 export function listeningMessage(version: string, hostname: string, port: number, allowedHosts = ""): string {
     const bare = hostname.replace(/^\[(.*)\]$/, "$1");
     const wildcard = WILDCARD_HOSTS.includes(bare);

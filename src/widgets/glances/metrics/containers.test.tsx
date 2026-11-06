@@ -73,7 +73,7 @@ describe("widgets/glances/metrics/containers", () => {
             settings: { hideErrors: false },
         });
 
-        // data.splice(1) keeps only one item when chart is false
+        // data.slice(0, 1) keeps only one item when chart is false
         expect(screen.getByText("resources.cpu")).toBeInTheDocument();
         expect(screen.getByText("resources.mem")).toBeInTheDocument();
 
