@@ -13,8 +13,8 @@ import {
 } from "@/utils/config/core";
 
 // The loaded config, kept in the cache under one key once it loads without errors. The first clean load stores it, a
-// clean reload replaces it, and nothing else changes it. With FOYER_DISK_CACHE=true the cache is on disk, so it outlives
-// a restart until the next reload.
+// clean reload replaces it, and nothing else changes it. The cache is kept in memory only, so a restart loads the file
+// again.
 const CACHE_KEY = "foyerConfig";
 
 // next build prerenders a few pages, with no config file to read

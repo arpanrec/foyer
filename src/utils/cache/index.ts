@@ -1,7 +1,6 @@
-// The cache every caller imports: one shared store, kept in memory, or on disk with FOYER_DISK_CACHE=true so entries
-// outlive a restart.
+// The cache every caller imports: one shared store, kept in memory only.
 
-export { default } from "@/utils/cache/disk";
+export { default } from "@/utils/cache/store";
 export type {
     CacheArtifactType,
     CacheEntryInfo,

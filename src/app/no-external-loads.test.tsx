@@ -130,7 +130,7 @@ describe("a dashboard whose config names outside hosts", () => {
             /url\(/.test(div.getAttribute("style") ?? "")
         );
         expect(masks.length).toBeGreaterThan(0);
-        for (const mask of masks) expect(mask.getAttribute("style")).toMatch(/url\(\/api\/icons\//);
+        for (const mask of masks) expect(mask.getAttribute("style")).toMatch(/url\("?\/api\/icons\//);
     });
 
     it("sends a background and a favicon through Foyer", async () => {
