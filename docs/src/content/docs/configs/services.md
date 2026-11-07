@@ -337,7 +337,7 @@ You can also specify prefixed icons from:
 
 You can specify a custom color for `mdi` and `si` icons by adding a hex color code as a suffix e.g. `mdi-XX-#f0d453` or `si-XX-#a712a2`.
 
-No icon set is bundled with Foyer. The server downloads each icon the first time a dashboard uses it and keeps it in Foyer's cache, so the browser only ever talks to Foyer, never to a CDN. The cache is kept in memory only, so icons are downloaded again after a restart. A download that fails is not tried again for five minutes, and an icon that cannot be refreshed is served from the earlier copy, which is kept for up to a week.
+No icon set is bundled with Foyer. The server downloads each icon the first time a dashboard uses it and keeps it in Foyer's cache, so the browser only ever talks to Foyer, never to a CDN. A download that fails is not tried again for five minutes, and an icon that cannot be refreshed is served from the earlier copy, which is kept for up to a week.
 
 A hard reload in the browser (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd>, or <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd> on macOS) asks for every icon and image with `Cache-Control: no-cache`, and Foyer then skips its cached copy: it downloads the image again, even within the five minutes after a failed download, and stores the new copy for later requests. When that download fails, the earlier copy is served and kept. A request from any other client works the same way when it sends `Cache-Control: no-cache`, or `Pragma: no-cache` with no `Cache-Control` header. `Cache-Control: max-age=0`, which some browsers send on a normal reload, is served from the cache.
 

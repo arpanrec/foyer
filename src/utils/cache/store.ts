@@ -1,6 +1,5 @@
 // The cache store, built on CacheableMemory from @cacheable/memory, implementing the CacheStore interface in types.ts.
-// Entries are kept in memory only, so the cache starts empty after a restart. Each entry has its own TTL, and there is
-// no limit on the number or size of entries.
+// Each entry has its own TTL, and there is no limit on the number or size of entries.
 
 import { serialize } from "node:v8";
 
@@ -18,7 +17,7 @@ import createLogger from "@/utils/logger";
 
 const logger = createLogger("cache");
 
-// How often expired entries are removed, so an entry that is never read again does not stay in memory. The timer is
+// How often expired entries are removed, so an entry that is never read again does not stay in the cache. The timer is
 // unref'd, so it never keeps the process alive.
 export const EXPIRY_CHECK_INTERVAL_MS = 60_000;
 // CacheableMemory evicts the least recently used entry once it holds this many; 0 turns that off, so the cache has no
@@ -90,17 +89,18 @@ export class MemoryCacheStore implements CacheStore {
             return (await running) as T | undefined;
         }
 
+        // A hit is never registered as a running load, so a refresh that starts while it is being returned still loads
+        if (!refresh) {
+            const item = this.live(id);
+            if (item?.value !== undefined) {
+                logger.debug("Cache hit: %s", label);
+                return item.value as T;
+            }
+        }
+
+        logger.debug(refresh ? "Cache refresh: %s" : "Cache miss: %s", label);
         const run: { promise?: Promise<T | undefined> } = {};
         const loaded = (run.promise = (async () => {
-            if (!refresh) {
-                const item = this.live(id);
-                if (item?.value !== undefined) {
-                    logger.debug("Cache hit: %s", label);
-                    return item.value as T;
-                }
-            }
-
-            logger.debug(refresh ? "Cache refresh: %s" : "Cache miss: %s", label);
             const value = await load();
             if (value === undefined) return undefined;
             // a key that was deleted or cleared while it loaded is not brought back by the old load

@@ -48,24 +48,26 @@ export default async function transmissionProxyHandler(req: ApiRequest, res: Api
         },
     });
 
+    // httpProxy adds the request's cookie and content length to the headers it is given, so each call gets a copy and
+    // the cached headers keep only the content type and the CSRF token
     let [status, contentType, data, responseHeaders] = await httpProxy(url, {
         method,
         auth,
         body,
-        headers,
+        headers: { ...headers },
     });
 
     if (status === 409) {
         logger.debug("Transmission is rejecting the request, but returning a CSRF token");
-        headers[csrfHeaderName] = responseHeaders?.[csrfHeaderName];
-        await cachedSession(headersKey, async () => ({ value: headers }), true);
+        const withToken = { ...headers, [csrfHeaderName]: responseHeaders?.[csrfHeaderName] };
+        await cachedSession(headersKey, async () => ({ value: withToken }), true);
 
         // retry the request, now with the CSRF token
         [status, contentType, data, responseHeaders] = await httpProxy(url, {
             method,
             auth,
             body,
-            headers,
+            headers: { ...withToken },
         });
     }
 

@@ -20,6 +20,12 @@ const open = () => {
 };
 const sorted = (keys: string[]) => [...keys].sort();
 
+// Resolves a pending load through the resolve function its loader handed out, failing when the loader never ran
+function settle(finish: ((value: string) => void) | undefined, value: string) {
+    if (finish === undefined) throw new Error("The loader has not started");
+    finish(value);
+}
+
 beforeEach(() => {
     vi.clearAllMocks();
 });
@@ -47,7 +53,7 @@ describe("utils/cache/store", () => {
         await cache.getOrFetch("k", async () => 1, { ttlMs: 1000 });
 
         vi.advanceTimersByTime(999);
-        expect((await cache.entries())[0]!.expiresInMs).toBe(1);
+        expect(await cache.entries()).toEqual([expect.objectContaining({ key: "k", expiresInMs: 1 })]);
         expect(await cache.getOrFetch("k", async () => 2)).toBe(1);
         vi.advanceTimersByTime(1);
         expect(await cache.keys()).toEqual([]);
@@ -151,6 +157,22 @@ describe("utils/cache/store", () => {
         expect(await cache.size()).toBe(0);
     });
 
+    it("runs the loader of a refresh that starts while a cache hit is being returned", async () => {
+        const cache = open();
+        await cache.getOrFetch("k", async () => "old");
+
+        const load = vi.fn(async () => "new");
+        const [hit, refreshed] = await Promise.all([
+            cache.getOrFetch("k", async () => "unused"),
+            cache.getOrFetch("k", load, { refresh: true }),
+        ]);
+
+        expect(hit).toBe("old");
+        expect(refreshed).toBe("new");
+        expect(load).toHaveBeenCalledOnce();
+        expect(await cache.getOrFetch("k", async () => "unused")).toBe("new");
+    });
+
     it("does not bring back a key deleted while it loaded", async () => {
         const cache = open();
         let finish!: (value: number) => void;
@@ -174,14 +196,14 @@ describe("utils/cache/store", () => {
             type: "image",
         });
 
-        // getOrFetch reads the cache before it calls the loader
+        // both loaders are running before the type is cleared
         await vi.waitFor(() => {
             expect(finishFeed).toBeTypeOf("function");
             expect(finishImage).toBeTypeOf("function");
         });
         await cache.clear("feed");
-        finishFeed!("late");
-        finishImage!("kept");
+        settle(finishFeed, "late");
+        settle(finishImage, "kept");
 
         expect(await feed).toBe("late");
         expect(await image).toBe("kept");
@@ -191,7 +213,7 @@ describe("utils/cache/store", () => {
         const all = cache.getOrFetch("a", () => new Promise<string>((resolve) => (finishAll = resolve)));
         await vi.waitFor(() => expect(finishAll).toBeTypeOf("function"));
         await cache.clear();
-        finishAll!("late");
+        settle(finishAll, "late");
         expect(await all).toBe("late");
         expect(await cache.keys()).toEqual([]);
     });

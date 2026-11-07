@@ -80,7 +80,7 @@ Log files rotate automatically when they reach 10 MiB. Foyer keeps the current `
 
 ## Cache
 
-Foyer caches downloaded icons and images, feeds, logins to upstream services, widget responses and the loaded config. The cache is kept in memory only: nothing is written to disk, and it starts empty after a restart, so every icon is downloaded again and every service logs in again. Each entry has its own time to live, and expired entries are removed within a minute. The cache has no limit on the number or size of entries.
+Foyer caches downloaded icons and images, feeds, logins to upstream services, widget responses and the loaded config. Each entry has its own time to live, and expired entries are removed within a minute. The cache has no limit on the number or size of entries.
 
 ## Build time
 

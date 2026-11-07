@@ -1,4 +1,4 @@
-// The cache every caller imports: one shared store, kept in memory only.
+// The cache every caller imports: one shared store.
 
 export { default } from "@/utils/cache/store";
 export type {

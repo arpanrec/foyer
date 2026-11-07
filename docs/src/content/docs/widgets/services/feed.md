@@ -144,4 +144,4 @@ When a feed URL starts with `https://www.youtube.com/`, the widget filters out Y
 
 ## Notes
 
-Feeds are fetched by foyer, not your browser, and each feed is cached for `cache` milliseconds (600000, or 10 minutes, by default). The cache is kept per feed URL in Foyer's cache, so widgets that show the same feed share one entry. It is kept in memory and starts empty after a restart. Only successful fetches are cached. `cache` must be a number of milliseconds, 0 or more, and `0` turns the cache off. Any other value is an error.
+Feeds are fetched by foyer, not your browser, and each feed is cached for `cache` milliseconds (600000, or 10 minutes, by default). The cache is kept per feed URL in Foyer's cache, so widgets that show the same feed share one entry. Only successful fetches are cached. `cache` must be a number of milliseconds, 0 or more, and `0` turns the cache off. Any other value is an error.
