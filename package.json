@@ -1,6 +1,6 @@
 {
     "name": "@arpanrec/foyer",
-    "version": "0.0.6-rc0",
+    "version": "0.0.6",
     "type": "module",
     "exports": {
         "./schema.json": "./src/foyer-config/foyer.schema.json",
