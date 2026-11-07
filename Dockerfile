@@ -58,8 +58,8 @@ USER root
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
-# Mount the folder holding foyer.config.jsonc.njk at /app/config; Foyer only reads it, so it may be read-only. Logs, and
-# the cache when FOYER_DISK_CACHE=true, go under FOYER_DATA_DIR, /tmp/foyer unless set
+# Mount the folder holding foyer.config.jsonc.njk at /app/config; Foyer only reads it, so it may be read-only. Logs go
+# under FOYER_DATA_DIR, /tmp/foyer unless set
 ENV FOYER_CONFIG_FILE=/app/config/foyer.config.jsonc.njk
 ENV HOSTNAME=::
 ENV PORT=3000
